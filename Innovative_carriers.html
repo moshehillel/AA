@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carrier Email & Invoice Automation Workflow</title>
+  <style>
+    :root {
+      --primary: #1f4fd8;
+      --primary-dark: #153a9e;
+      --success: #1f9d55;
+      --warning: #f59e0b;
+      --danger: #dc2626;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 60px 24px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      margin: 0 0 16px;
+      font-size: 42px;
+      line-height: 1.15;
+    }
+
+    .hero p {
+      max-width: 900px;
+      margin: 0 auto;
+      font-size: 19px;
+      opacity: 0.95;
+    }
+
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 36px 20px 70px;
+    }
+
+    .flowchart {
+      background: white;
+      border-radius: 20px;
+      padding: 28px;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+      margin-bottom: 34px;
+    }
+
+    .flowchart h2 {
+      margin: 0 0 10px;
+      color: var(--primary-dark);
+      font-size: 30px;
+    }
+
+    .flowchart p {
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 920px;
+      margin: 0;
+    }
+
+    .flow-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-top: 28px;
+    }
+
+    .flow-card,
+    .flow-start,
+    .flow-success,
+    .flow-warning,
+    .flow-error {
+      border-radius: 16px;
+      padding: 18px 24px;
+      border: 2px solid #c7d2fe;
+      background: white;
+    }
+
+    .flow-start {
+      background: #eef2ff;
+      border-color: var(--primary);
+      font-weight: bold;
+      font-size: 20px;
+      text-align: center;
+    }
+
+    .flow-success {
+      background: #ecfdf5;
+      border-color: #16a34a;
+    }
+
+    .flow-warning {
+      background: #fff7ed;
+      border-color: var(--warning);
+    }
+
+    .flow-error {
+      background: #fef2f2;
+      border-color: var(--danger);
+    }
+
+    .flow-note {
+      text-align: center;
+      font-weight: bold;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 13px;
+    }
+
+    .flow-arrow {
+      width: 44px;
+      height: 44px;
+      margin: -4px auto;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .branch-label {
+      display: inline-block;
+      margin-bottom: 8px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: var(--primary-dark);
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .flow-split {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-top: 0;
+      margin-bottom: 34px;
+    }
+
+    .summary-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 14px 35px rgba(15, 23, 42, 0.12);
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .summary-card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      color: var(--primary-dark);
+    }
+
+    .summary-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .section-title {
+      margin: 36px 0 18px;
+      font-size: 28px;
+      color: var(--primary-dark);
+    }
+
+    .workflow {
+      display: grid;
+      gap: 18px;
+    }
+
+    .step {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+      display: grid;
+      grid-template-columns: 70px 1fr;
+      gap: 18px;
+      align-items: start;
+      position: relative;
+    }
+
+    .step:not(:last-child)::after {
+      content: "\2193";
+      position: absolute;
+      left: 48px;
+      bottom: -26px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 1;
+    }
+
+    .step-number {
+      width: 50px;
+      height: 50px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .step h3 {
+      margin: 0 0 10px;
+      font-size: 21px;
+    }
+
+    .step p {
+      margin: 0 0 12px;
+      color: var(--muted);
+    }
+
+    ul {
+      margin: 10px 0 0;
+      padding-left: 22px;
+    }
+
+    li {
+      margin-bottom: 5px;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: var(--primary-dark);
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .rule-box {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-left: 5px solid var(--warning);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-top: 14px;
+    }
+
+    .rule-box strong {
+      color: #92400e;
+    }
+
+    .success-box {
+      background: #ecfdf5;
+      border: 1px solid #bbf7d0;
+      border-left: 5px solid var(--success);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-top: 14px;
+    }
+
+    .task-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .task-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    }
+
+    .task-card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      color: var(--primary-dark);
+    }
+
+    .task-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .footer-note {
+      margin-top: 36px;
+      background: #eef2ff;
+      border-radius: 18px;
+      padding: 26px;
+      border: 1px solid #c7d2fe;
+    }
+
+    .footer-note h2 {
+      margin-top: 0;
+      color: var(--primary-dark);
+    }
+
+    .footer-note p {
+      margin-bottom: 0;
+      color: var(--muted);
+    }
+
+    code {
+      background: #f3f4f6;
+      padding: 3px 6px;
+      border-radius: 6px;
+      color: #111827;
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .summary-grid,
+      .task-grid,
+      .flow-grid,
+      .flow-split {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 650px) {
+      .hero h1 {
+        font-size: 32px;
+      }
+
+      .summary-grid,
+      .task-grid,
+      .flow-grid,
+      .flow-split {
+        grid-template-columns: 1fr;
+      }
+
+      .step {
+        grid-template-columns: 1fr;
+      }
+
+      .step:not(:last-child)::after {
+        left: calc(50% - 14px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <h1>Carrier Email & Invoice Automation Workflow</h1>
+    <p>
+      A backend automation system that opens carrier emails, classifies attachments, updates Primus shipments,
+      validates invoice amounts, routes exceptions, and sends clean customer invoices with the POD attached.
+    </p>
+  </header>
+
+  <main class="container">
+    <section class="flowchart">
+      <h2>Current Workflow Flowchart</h2>
+      <p>
+        Every email is opened and classified first. Statements, insurance CSV files, general emails,
+        and carrier invoices each follow their own path.
+      </p>
+
+      <div class="flow-stack">
+        <div class="flow-start">Carrier Email Received and Opened</div>
+
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-note">Classify email type</div>
+        <div class="flow-arrow">&darr;</div>
+
+        <div class="flow-grid">
+          <div class="flow-card">
+            <span class="branch-label">Statement</span><br>
+            <strong>Statement</strong><br>
+            Upload to the proper statement location.
+          </div>
+          <div class="flow-card">
+            <span class="branch-label">CSV</span><br>
+            <strong>Insurance CSV</strong><br>
+            Add last month's insurance cost to every listed BOL.
+          </div>
+          <div class="flow-card">
+            <span class="branch-label">Other</span><br>
+            <strong>Other Email</strong><br>
+            AI checks reply rules. If no rule applies, send to manual review.
+          </div>
+          <div class="flow-success">
+            <span class="branch-label">Invoice</span><br>
+            <strong>Invoice</strong><br>
+            Extract invoice and shipment data.
+          </div>
+        </div>
+
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-note">Only invoice emails continue below</div>
+        <div class="flow-arrow">&darr;</div>
+
+        <div class="flow-card">
+          <strong>AI Extracts:</strong> carrier, invoice number, invoice amount, due date, BOL, PRO, shipment details, POD, and added charges.
+        </div>
+
+        <div class="flow-arrow">&darr;</div>
+
+        <div class="flow-card">
+          <strong>Find the Primus Load:</strong> if the shipment is not found, forward the email to manual review.
+          If the shipment is already invoiced, ignore the email. Otherwise, update the load before continuing.
+        </div>
+
+        <div class="flow-arrow">&darr;</div>
+
+        <div class="flow-card">
+          <strong>Update Primus Load First:</strong> enter all bill details found on the invoice, mark the shipment delivered,
+          upload the POD, and keep these details in place before any review forwarding.
+        </div>
+
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-note">Special handling checks</div>
+
+        <div class="flow-split">
+          <div class="flow-card">
+            <span class="branch-label">If drayage</span><br>
+            <strong>Drayage Shipment</strong><br>
+            Follow the specific drayage shipment entry rules.
+          </div>
+          <div class="flow-warning">
+            <span class="branch-label">If added charges</span><br>
+            <strong>Added Charges</strong><br>
+            Lumper, detention, or other accessorials are deducted from the invoice total before checking the base amount in Primus.
+          </div>
+        </div>
+
+        <div class="flow-arrow">&darr;</div>
+
+        <div class="flow-note">Validation before billing</div>
+
+        <div class="flow-grid">
+          <div class="flow-error">
+            <span class="branch-label">No customer</span><br>
+            <strong>Missing Customer</strong><br>
+            Create task and stop until the customer is entered.
+          </div>
+          <div class="flow-error">
+            <span class="branch-label">No rate</span><br>
+            <strong>Missing Rate</strong><br>
+            Create task if no rate exists or profit is under $10.
+          </div>
+          <div class="flow-warning">
+            <span class="branch-label">Low margin</span><br>
+            <strong>Profit Under 10%</strong><br>
+            Adjust commission and add <code>(not verified if possible)</code>.
+          </div>
+          <div class="flow-card">
+            <span class="branch-label">Amount check</span><br>
+            <strong>Check Primus</strong><br>
+            Compare invoice amount or adjusted base amount against Primus.
+          </div>
+        </div>
+
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-note">Invoice amount decision</div>
+
+        <div class="flow-split">
+          <div class="flow-warning">
+            <span class="branch-label">Added charge match</span><br>
+            <strong>Lumper / Detention / Other Added Charge</strong><br>
+            If the invoice matches after deducting the added charge, create a review task labeled with the charge type and forward the email.
+          </div>
+          <div class="flow-error">
+            <span class="branch-label">No match</span><br>
+            <strong>Amount Does Not Match</strong><br>
+            Label the email <code>No Match</code> and forward it to the correct department.
+          </div>
+        </div>
+
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-note">Final clean path</div>
+
+        <div class="flow-success">
+          <span class="branch-label">Everything correct</span><br>
+          <strong>Clean Match</strong><br>
+          Customer exists, rate exists, profit passes, amount matches Primus, shipment details are updated,
+          POD is uploaded, and the customer invoice is sent with the POD attached.
+        </div>
+      </div>
+    </section>
+
+    <section class="summary-grid">
+      <div class="summary-card">
+        <h3>Email Intake</h3>
+        <p>Classifies statements, CSV files, other emails, and invoices.</p>
+      </div>
+      <div class="summary-card">
+        <h3>Primus Updates</h3>
+        <p>Adds shipment details, due dates, PRO numbers, PODs, and delivery status.</p>
+      </div>
+      <div class="summary-card">
+        <h3>Invoice Rules</h3>
+        <p>Handles drayage, added charges, amount matching, rates, and profit checks.</p>
+      </div>
+      <div class="summary-card">
+        <h3>Billing & Review</h3>
+        <p>Sends clean invoices or creates labeled review tasks for exceptions.</p>
+      </div>
+    </section>
+
+    <h2 class="section-title">End-to-End Workflow</h2>
+
+    <section class="workflow">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div>
+          <h3>Open and Classify Every Email</h3>
+          <p>The system monitors the carrier inbox, opens each email, reads the body and attachments, and decides which workflow should run.</p>
+          <div class="tag-row">
+            <span class="tag">Statement</span>
+            <span class="tag">Insurance CSV</span>
+            <span class="tag">Other Email</span>
+            <span class="tag">Invoice</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">2</div>
+        <div>
+          <h3>Handle Statements</h3>
+          <p>If the email is a statement, upload it to the proper statement location and complete the email without starting invoice billing.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">3</div>
+        <div>
+          <h3>Apply Monthly Insurance CSV</h3>
+          <p>If the attachment is the CSV file for last month's insurance pricing, the system reads every row and adds the insurance cost to each matching BOL number.</p>
+          <div class="success-box">
+            This keeps shipment costs updated in Primus before customer billing runs.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">4</div>
+        <div>
+          <h3>Route Other Emails Through AI</h3>
+          <p>For non-invoice emails, the AI agent checks whether there are rules for how to answer or process the message.</p>
+          <div class="rule-box">
+            <strong>If no rule matches:</strong> send the email to manual review so an employee can decide what to do.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">5</div>
+        <div>
+          <h3>Extract Invoice Data</h3>
+          <p>If the email is an invoice, AI extracts the data needed to update Primus and validate billing.</p>
+          <div class="tag-row">
+            <span class="tag">Carrier</span>
+            <span class="tag">Invoice Number</span>
+            <span class="tag">Invoice Amount</span>
+            <span class="tag">Due Date</span>
+            <span class="tag">BOL</span>
+            <span class="tag">PRO Number</span>
+            <span class="tag">POD</span>
+            <span class="tag">Added Charges</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">6</div>
+        <div>
+          <h3>Find and Update the Primus Shipment</h3>
+          <p>The system matches the invoice to the Primus load and enters every shipment detail found on the bill before any billing or review forwarding.</p>
+          <ul>
+            <li>Add or confirm carrier name, shipment references, BOL, PRO number, invoice number, due date, and invoice notes.</li>
+            <li>Mark the shipment delivered once the invoice is received.</li>
+            <li>Extract the POD from the invoice and upload it to Primus.</li>
+          </ul>
+          <div class="rule-box">
+            <strong>If the shipment cannot be found:</strong> forward the email to manual review.
+          </div>
+          <div class="success-box">
+            <strong>If the shipment is already invoiced:</strong> ignore the email and stop the workflow.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">7</div>
+        <div>
+          <h3>Validate Customer, Rate, and Profit</h3>
+          <p>Before amount validation and customer billing, the system confirms the load is billable and has enough profit.</p>
+          <ul>
+            <li>If no customer is entered, create a <code>Missing Customer</code> task.</li>
+            <li>If no customer rate exists, create a <code>Missing Rate</code> task.</li>
+            <li>If profit is less than <code>$10</code>, create a missing or incorrect rate task.</li>
+            <li>If profit is less than <code>10%</code>, adjust the commission and add <code>(not verified if possible)</code>.</li>
+            <li>If customer, rate, and profit are good, continue to invoice amount validation.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">8</div>
+        <div>
+          <h3>Apply Drayage Rules</h3>
+          <p>If the invoice is for a drayage shipment, the workflow follows the special drayage entry rules for that shipment style before continuing.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">9</div>
+        <div>
+          <h3>Validate Added Charges</h3>
+          <p>The system checks for lumper, detention, and other accessorial charges before deciding whether the invoice amount matches.</p>
+          <ul>
+            <li>If added charges exist, deduct the added charge amount from the invoice total before checking the base carrier amount in Primus.</li>
+            <li>If the base amount is correct after the deduction, create a review task labeled with the charge type, such as <code>Added - Lumper Amount Correct</code>.</li>
+            <li>Make sure the load already has all bill details entered before forwarding the email for review.</li>
+            <li>Forward the email to the correct address for that added-charge review.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">10</div>
+        <div>
+          <h3>Validate Invoice Amount Against Primus</h3>
+          <p>If there are no added charges, the system compares the carrier invoice amount directly against Primus. If added charges were already deducted, it compares the adjusted base amount.</p>
+          <div class="rule-box">
+            <strong>If the amount does not match:</strong> label the email <code>No Match</code> and forward it to the correct department.
+          </div>
+          <div class="success-box">
+            <strong>If the amount matches:</strong> continue to customer invoicing.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">11</div>
+        <div>
+          <h3>Send the Customer Invoice</h3>
+          <p>If customer, rate, profit, shipment details, POD, and invoice amount all pass validation, the system sends the invoice to the customer.</p>
+          <ul>
+            <li>Attach the POD extracted from the carrier invoice.</li>
+            <li>Include the customer invoice generated from Primus.</li>
+            <li>Keep all extracted carrier invoice details on the load for audit and review.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">12</div>
+        <div>
+          <h3>Monthly Uninvoiced Load Check</h3>
+          <p>Once a month, the system checks all delivered loads that are still not invoiced and requests the missing bill from the carrier.</p>
+          <div class="success-box">
+            This catches loads where the carrier never sent the bill and prevents old uninvoiced shipments from being forgotten.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <h2 class="section-title">Manual Review and Labels</h2>
+
+    <section class="task-grid">
+      <div class="task-card">
+        <h3>Manual Review</h3>
+        <p>Created when a general email has no matching AI reply rule or the system cannot decide the next step safely.</p>
+      </div>
+      <div class="task-card">
+        <h3>Missing Customer</h3>
+        <p>Created when the matched Primus load does not have a customer entered.</p>
+      </div>
+      <div class="task-card">
+        <h3>Missing Rate</h3>
+        <p>Created when there is no rate, profit is under $10, or the rate appears incorrect.</p>
+      </div>
+      <div class="task-card">
+        <h3>Added Charge Review</h3>
+        <p>Created for lumper, detention, or other accessorials when the base invoice amount is correct after deducting the added charge.</p>
+      </div>
+      <div class="task-card">
+        <h3>No Match</h3>
+        <p>Label used when the carrier invoice amount does not match Primus and cannot be cleared automatically.</p>
+      </div>
+      <div class="task-card">
+        <h3>Shipment Not Found</h3>
+        <p>Used when the invoice cannot be confidently matched to a Primus shipment or BOL. The email is forwarded to manual review.</p>
+      </div>
+      <div class="task-card">
+        <h3>Already Invoiced</h3>
+        <p>If the matched shipment was already invoiced, the system ignores the email and stops processing.</p>
+      </div>
+    </section>
+
+    <section class="footer-note">
+      <h2>Business Value</h2>
+      <p>
+        This workflow keeps email handling, Primus updates, exception routing, and customer invoicing in one automated process.
+        Employees only review emails and invoices that need judgment, while clean invoices move through to the customer with the POD attached.
+      </p>
+    </section>
+  </main>
+</body>
+</html>
