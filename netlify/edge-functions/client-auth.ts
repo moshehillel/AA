@@ -26,6 +26,18 @@ export default async (request: Request, context: Context) => {
     return context.next();
   }
 
+  // The browser resolves the dashboard's relative asset URLs (style.css,
+  // app.js, ...) against the visible address bar path. Without a trailing
+  // slash, "/innovative-carriers" is treated as a file and "style.css"
+  // resolves to the site root ("/style.css") instead of
+  // "/innovative-carriers/style.css" — producing 404s. Redirect the bare
+  // slug to its trailing-slash form so relative URLs resolve correctly.
+  if (segments.length === 1 && !url.pathname.endsWith("/")) {
+    const redirectUrl = new URL(url);
+    redirectUrl.pathname = `${url.pathname}/`;
+    return Response.redirect(redirectUrl, 301);
+  }
+
   const envKey = `CLIENT_${slug.toUpperCase().replace(/-/g, "_")}_PASSWORD`;
   const expectedPassword = Deno.env.get(envKey);
   if (!expectedPassword) {
