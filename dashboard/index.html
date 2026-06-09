@@ -13,6 +13,7 @@
     <div class="gmail-status">
       <span id="gmailStatusBadge" class="badge badge-unknown">Checking…</span>
       <button id="runEmailCheckBtn" class="btn btn-outline">Check Inbox</button>
+      <button id="disconnectGmailBtn" class="btn btn-danger" hidden>Disconnect</button>
       <button id="connectGmailBtn" class="btn">Connect Gmail</button>
     </div>
   </header>
@@ -46,6 +47,16 @@
     </section>
 
     <p id="errorBanner" class="error-banner" hidden></p>
+
+    <section class="logs-section">
+      <div class="logs-header">
+        <h2 class="logs-title">Recent Activity</h2>
+        <button id="refreshLogsBtn" class="btn btn-outline btn-sm">Refresh</button>
+      </div>
+      <div id="logsContainer" class="logs-container">
+        <p class="logs-empty">Loading…</p>
+      </div>
+    </section>
   </main>
 
   <button id="supportChatToggle" class="support-chat-toggle" aria-label="Open support chat">

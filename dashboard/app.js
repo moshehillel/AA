@@ -26,6 +26,7 @@
   const els = {
     badge: document.getElementById("gmailStatusBadge"),
     connectBtn: document.getElementById("connectGmailBtn"),
+    disconnectBtn: document.getElementById("disconnectGmailBtn"),
     runEmailCheckBtn: document.getElementById("runEmailCheckBtn"),
     runResultBanner: document.getElementById("runResultBanner"),
     rangeBtns: Array.from(document.querySelectorAll(".range-btn")),
@@ -34,6 +35,8 @@
     statForwarded: document.getElementById("statForwarded"),
     errorBanner: document.getElementById("errorBanner"),
     chartCanvas: document.getElementById("statsChart"),
+    refreshLogsBtn: document.getElementById("refreshLogsBtn"),
+    logsContainer: document.getElementById("logsContainer"),
   };
 
   let chart = null;
@@ -64,15 +67,64 @@
         els.badge.textContent = "Gmail connected";
         els.badge.className = "badge badge-connected";
         els.connectBtn.textContent = "Reconnect Gmail";
+        els.disconnectBtn.hidden = false;
       } else {
         els.badge.textContent = "Gmail not connected";
         els.badge.className = "badge badge-disconnected";
         els.connectBtn.textContent = "Connect Gmail";
+        els.disconnectBtn.hidden = true;
       }
     } catch (error) {
       els.badge.textContent = "Status unavailable";
       els.badge.className = "badge badge-unknown";
       console.error("loadGmailStatus failed:", error);
+    }
+  }
+
+  function formatLogTime(ts) {
+    if (!ts) return "—";
+    const d = new Date(ts);
+    return isNaN(d) ? ts : d.toLocaleString(undefined, {
+      month: "short", day: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    });
+  }
+
+  function renderLogs(logs) {
+    if (!logs || logs.length === 0) {
+      els.logsContainer.innerHTML =
+        '<p class="logs-empty">No activity yet.</p>';
+      return;
+    }
+    const rows = logs.map((log) => {
+      const level = (log.level || "info").toLowerCase();
+      return `<tr>
+        <td class="log-time">${formatLogTime(log.timestamp)}</td>
+        <td><span class="log-level log-level-${level}">${level}</span></td>
+        <td><span class="log-category">${log.category || "—"}</span></td>
+        <td class="log-message">${log.message || "—"}</td>
+      </tr>`;
+    }).join("");
+    els.logsContainer.innerHTML =
+      `<table class="logs-table">
+        <thead><tr>
+          <th>Time</th><th>Level</th><th>Category</th><th>Message</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  async function loadLogs() {
+    els.refreshLogsBtn.disabled = true;
+    try {
+      const data = await fetchJson("/getRecentLogs?limit=40");
+      renderLogs(data.logs || []);
+    } catch (error) {
+      els.logsContainer.innerHTML =
+        '<p class="logs-empty">Could not load logs.</p>';
+      console.error("loadLogs failed:", error);
+    } finally {
+      els.refreshLogsBtn.disabled = false;
     }
   }
 
@@ -158,6 +210,27 @@
   els.connectBtn.addEventListener("click", () => {
     window.location.href = `${BASE_URL}/gmailConnect`;
   });
+
+  els.disconnectBtn.addEventListener("click", async () => {
+    if (!confirm("Disconnect Gmail? The system will stop processing emails until you reconnect.")) return;
+    els.disconnectBtn.disabled = true;
+    try {
+      const response = await fetch(`${BASE_URL}/gmailDisconnect`, {method: "POST"});
+      const data = await response.json();
+      if (data.ok) {
+        await loadGmailStatus();
+        showRunResult("Gmail disconnected.", false);
+      } else {
+        showRunResult("Disconnect failed: " + (data.error || "unknown error"), true);
+      }
+    } catch (error) {
+      showRunResult("Could not reach the server.", true);
+    } finally {
+      els.disconnectBtn.disabled = false;
+    }
+  });
+
+  els.refreshLogsBtn.addEventListener("click", loadLogs);
 
   function showRunResult(message, isError) {
     els.runResultBanner.textContent = message;
@@ -335,4 +408,5 @@
 
   loadGmailStatus();
   setActiveRange(activeRange);
+  loadLogs();
 })();
