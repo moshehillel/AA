@@ -26,6 +26,8 @@
   const els = {
     badge: document.getElementById("gmailStatusBadge"),
     connectBtn: document.getElementById("connectGmailBtn"),
+    runEmailCheckBtn: document.getElementById("runEmailCheckBtn"),
+    runResultBanner: document.getElementById("runResultBanner"),
     rangeBtns: Array.from(document.querySelectorAll(".range-btn")),
     statInvoices: document.getElementById("statInvoices"),
     statReplied: document.getElementById("statReplied"),
@@ -156,6 +158,180 @@
   els.connectBtn.addEventListener("click", () => {
     window.location.href = `${BASE_URL}/gmailConnect`;
   });
+
+  function showRunResult(message, isError) {
+    els.runResultBanner.textContent = message;
+    els.runResultBanner.className =
+      "run-result-banner " + (isError ? "is-error" : "is-success");
+    els.runResultBanner.hidden = false;
+  }
+
+  els.runEmailCheckBtn.addEventListener("click", async () => {
+    els.runEmailCheckBtn.disabled = true;
+    els.runEmailCheckBtn.textContent = "Checking…";
+    els.runResultBanner.hidden = true;
+
+    try {
+      const response = await fetch(`${BASE_URL}/checkGmailInbox`, {
+        method: "POST",
+      });
+      const data = await response.json();
+      if (data.ok) {
+        const n = data.processedMessages || 0;
+        showRunResult(
+          n === 0
+            ? "Inbox checked — no new emails to process."
+            : `Done — processed ${n} email${n === 1 ? "" : "s"}.`,
+          false,
+        );
+        loadStats(activeRange);
+      } else {
+        showRunResult(
+          "Check failed: " + (data.error || "unknown error"),
+          true,
+        );
+      }
+    } catch (error) {
+      showRunResult("Could not reach the server. Please try again.", true);
+      console.error("runEmailCheck failed:", error);
+    } finally {
+      els.runEmailCheckBtn.disabled = false;
+      els.runEmailCheckBtn.textContent = "Check Inbox";
+    }
+  });
+
+  // ---- Support chat ----
+
+  const chatEls = {
+    toggle: document.getElementById("supportChatToggle"),
+    panel: document.getElementById("supportChatPanel"),
+    close: document.getElementById("supportChatClose"),
+    log: document.getElementById("supportChatLog"),
+    form: document.getElementById("supportChatForm"),
+    input: document.getElementById("supportChatInput"),
+  };
+
+  const chatHistory = [];
+  let chatBusy = false;
+  let chatStarted = false;
+
+  function appendChatMessage(role, text) {
+    const bubble = document.createElement("p");
+    bubble.className = `support-chat-msg from-${role}`;
+    bubble.textContent = text;
+    chatEls.log.appendChild(bubble);
+    chatEls.log.scrollTop = chatEls.log.scrollHeight;
+    return bubble;
+  }
+
+  function openChat() {
+    chatEls.panel.hidden = false;
+    chatEls.toggle.classList.add("is-hidden");
+    chatEls.input.focus();
+    if (!chatStarted) {
+      chatStarted = true;
+      appendChatMessage(
+        "bot",
+        `Hi! I'm the support assistant for ${client.name}. What's going ` +
+          "on — what did you expect to see, and what are you seeing " +
+          "instead?",
+      );
+    }
+  }
+
+  function closeChat() {
+    chatEls.panel.hidden = true;
+    chatEls.toggle.classList.remove("is-hidden");
+  }
+
+  function endChat() {
+    appendChatMessage(
+      "system",
+      "This has been passed along to our team — thanks for the details!",
+    );
+    chatEls.input.disabled = true;
+    chatEls.form.querySelector(".support-chat-send").disabled = true;
+  }
+
+  async function sendChatMessage(text) {
+    chatHistory.push({role: "user", content: text});
+    appendChatMessage("user", text);
+
+    const pending = appendChatMessage("bot", "Thinking…");
+    pending.classList.add("is-pending");
+    chatBusy = true;
+    chatEls.input.disabled = true;
+
+    try {
+      const response = await fetch(`${BASE_URL}/dashboardSupportChat`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          clientName: client.name,
+          messages: chatHistory,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Chat request failed (${response.status})`);
+      }
+      const data = await response.json();
+      pending.remove();
+
+      const reply = (data && data.reply) ||
+        "Sorry, something went wrong on our end. Please try again.";
+      appendChatMessage("bot", reply);
+      chatHistory.push({role: "assistant", content: reply});
+
+      if (data && data.done) {
+        endChat();
+        return;
+      }
+    } catch (error) {
+      pending.remove();
+      appendChatMessage(
+          "bot",
+          "Sorry, I couldn't reach the support assistant. Please try " +
+            "again in a moment.",
+      );
+      console.error("sendChatMessage failed:", error);
+    } finally {
+      chatBusy = false;
+      chatEls.input.disabled = false;
+      chatEls.input.focus();
+    }
+  }
+
+  function autoGrowChatInput() {
+    chatEls.input.style.height = "auto";
+    chatEls.input.style.height = `${chatEls.input.scrollHeight}px`;
+  }
+
+  if (chatEls.toggle && chatEls.panel) {
+    chatEls.toggle.addEventListener("click", openChat);
+    chatEls.close.addEventListener("click", closeChat);
+    chatEls.input.addEventListener("input", autoGrowChatInput);
+
+    chatEls.form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (chatBusy) {
+        return;
+      }
+      const text = chatEls.input.value.trim();
+      if (!text) {
+        return;
+      }
+      chatEls.input.value = "";
+      autoGrowChatInput();
+      sendChatMessage(text);
+    });
+
+    chatEls.input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        chatEls.form.requestSubmit();
+      }
+    });
+  }
 
   loadGmailStatus();
   setActiveRange(activeRange);

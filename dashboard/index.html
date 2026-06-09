@@ -12,11 +12,14 @@
     <h1 id="dashboardTitle">Dashboard</h1>
     <div class="gmail-status">
       <span id="gmailStatusBadge" class="badge badge-unknown">Checking…</span>
+      <button id="runEmailCheckBtn" class="btn btn-outline">Check Inbox</button>
       <button id="connectGmailBtn" class="btn">Connect Gmail</button>
     </div>
   </header>
 
   <main id="dashboardMain">
+    <p id="runResultBanner" class="run-result-banner" hidden></p>
+
     <div class="range-switch" role="tablist" aria-label="Time range">
       <button class="range-btn is-active" data-range="week">Week</button>
       <button class="range-btn" data-range="month">Month</button>
@@ -44,6 +47,25 @@
 
     <p id="errorBanner" class="error-banner" hidden></p>
   </main>
+
+  <button id="supportChatToggle" class="support-chat-toggle" aria-label="Open support chat">
+    <span aria-hidden="true">&#128172;</span>
+  </button>
+
+  <section id="supportChatPanel" class="support-chat-panel" hidden aria-label="Support chat">
+    <header class="support-chat-header">
+      <div>
+        <p class="support-chat-title">Support assistant</p>
+        <p class="support-chat-subtitle">Tell us what's going on — we'll pass it along</p>
+      </div>
+      <button id="supportChatClose" class="support-chat-close" aria-label="Close support chat">&times;</button>
+    </header>
+    <div id="supportChatLog" class="support-chat-log" role="log" aria-live="polite"></div>
+    <form id="supportChatForm" class="support-chat-form">
+      <textarea id="supportChatInput" class="support-chat-input" rows="1" placeholder="Describe the issue you're seeing…" aria-label="Message"></textarea>
+      <button type="submit" class="support-chat-send" aria-label="Send message">&#10148;</button>
+    </form>
+  </section>
 
   <script src="clients.js"></script>
   <script src="app.js"></script>
