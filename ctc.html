@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coast to Coast Carriers — Invoice Automation Workflow (TAI)</title>
+  <style>
+    :root {
+      --primary: #0d9488;
+      --primary-dark: #0f766e;
+      --success: #1f9d55;
+      --warning: #f59e0b;
+      --danger: #dc2626;
+      --bg: #f2f9f8;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #d8ebe8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 60px 24px;
+      text-align: center;
+    }
+
+    .hero .eyebrow {
+      margin: 0 0 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 13px;
+      font-weight: bold;
+      opacity: 0.85;
+    }
+
+    .hero h1 {
+      margin: 0 0 16px;
+      font-size: 42px;
+      line-height: 1.15;
+    }
+
+    .hero p {
+      max-width: 900px;
+      margin: 0 auto;
+      font-size: 19px;
+      opacity: 0.95;
+    }
+
+    .tms-badge {
+      display: inline-block;
+      margin-top: 18px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 0.04em;
+    }
+
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 36px 20px 70px;
+    }
+
+    .flowchart {
+      background: white;
+      border-radius: 20px;
+      padding: 28px;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+      margin-bottom: 34px;
+    }
+
+    .flowchart h2 {
+      margin: 0 0 10px;
+      color: var(--primary-dark);
+      font-size: 30px;
+    }
+
+    .flowchart p {
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 920px;
+      margin: 0;
+    }
+
+    .flow-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-top: 28px;
+    }
+
+    .flow-card,
+    .flow-start,
+    .flow-success,
+    .flow-warning,
+    .flow-error {
+      border-radius: 16px;
+      padding: 18px 24px;
+      border: 2px solid #b7e4dd;
+      background: white;
+    }
+
+    .flow-start {
+      background: #e6fffb;
+      border-color: var(--primary);
+      font-weight: bold;
+      font-size: 20px;
+      text-align: center;
+    }
+
+    .flow-success {
+      background: #ecfdf5;
+      border-color: #16a34a;
+    }
+
+    .flow-warning {
+      background: #fff7ed;
+      border-color: var(--warning);
+    }
+
+    .flow-error {
+      background: #fef2f2;
+      border-color: var(--danger);
+    }
+
+    .flow-note {
+      text-align: center;
+      font-weight: bold;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 13px;
+    }
+
+    .flow-arrow {
+      width: 44px;
+      height: 44px;
+      margin: -4px auto;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .branch-label {
+      display: inline-block;
+      margin-bottom: 8px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #d7f5f0;
+      color: var(--primary-dark);
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .flow-split {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-top: 0;
+      margin-bottom: 34px;
+    }
+
+    .summary-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 14px 35px rgba(15, 23, 42, 0.12);
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .summary-card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      color: var(--primary-dark);
+    }
+
+    .summary-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .section-title {
+      margin: 36px 0 18px;
+      font-size: 28px;
+      color: var(--primary-dark);
+    }
+
+    .workflow {
+      display: grid;
+      gap: 18px;
+    }
+
+    .step {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+      display: grid;
+      grid-template-columns: 70px 1fr;
+      gap: 18px;
+      align-items: start;
+      position: relative;
+    }
+
+    .step:not(:last-child)::after {
+      content: "\2193";
+      position: absolute;
+      left: 48px;
+      bottom: -26px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 1;
+    }
+
+    .step-number {
+      width: 50px;
+      height: 50px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .step h3 {
+      margin: 0 0 10px;
+      font-size: 21px;
+    }
+
+    .step p {
+      margin: 0 0 12px;
+      color: var(--muted);
+    }
+
+    ul {
+      margin: 10px 0 0;
+      padding-left: 22px;
+    }
+
+    li {
+      margin-bottom: 5px;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #d7f5f0;
+      color: var(--primary-dark);
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .rule-box {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-left: 5px solid var(--warning);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-top: 14px;
+    }
+
+    .rule-box strong {
+      color: #92400e;
+    }
+
+    .success-box {
+      background: #ecfdf5;
+      border: 1px solid #bbf7d0;
+      border-left: 5px solid var(--success);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-top: 14px;
+    }
+
+    .task-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .task-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    }
+
+    .task-card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      color: var(--primary-dark);
+    }
+
+    .task-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .footer-note {
+      margin-top: 36px;
+      background: #e6fffb;
+      border-radius: 18px;
+      padding: 26px;
+      border: 1px solid #b7e4dd;
+    }
+
+    .footer-note h2 {
+      margin-top: 0;
+      color: var(--primary-dark);
+    }
+
+    .footer-note p {
+      margin-bottom: 0;
+      color: var(--muted);
+    }
+
+    code {
+      background: #ecfdf5;
+      padding: 3px 6px;
+      border-radius: 6px;
+      color: #064e3b;
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .summary-grid,
+      .task-grid,
+      .flow-grid,
+      .flow-split {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 650px) {
+      .hero h1 {
+        font-size: 32px;
+      }
+
+      .summary-grid,
+      .task-grid,
+      .flow-grid,
+      .flow-split {
+        grid-template-columns: 1fr;
+      }
+
+      .step {
+        grid-template-columns: 1fr;
+      }
+
+      .step:not(:last-child)::after {
+        left: calc(50% - 14px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <p class="eyebrow">Coast to Coast Carriers</p>
+    <h1>Carrier Email &amp; Invoice Automation Workflow</h1>
+    <p>
+      A backend automation system that opens carrier emails, classifies attachments, matches each invoice to its
+      TAI shipment, validates invoice amounts, marks shipments delivered, uploads the POD, approves the carrier
+      bill, and sends clean customer invoices with the POD attached.
+    </p>
+    <span class="tms-badge">TMS: TAI</span>
+  </header>
+
+  <main class="container">
+    <section class="flowchart">
+      <h2>Current Workflow Flowchart</h2>
+      <p>
+        TAI pushes every shipment to us by webhook, and we build an index that maps each reference number
+        (load #, PRO, BOL, custom refs) to its TAI shipment. Every carrier email is opened and classified first;
+        only carrier invoices continue down the billing path below.
+      </p>
+
+      <div class="flow-stack">
+        <div class="flow-start">Carrier Email Received and Opened</div>
+
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-note">Classify email type</div>
+        <div class="flow-arrow">&darr;</div>
+
+        <div class="flow-grid">
+          <div class="flow-card">
+            <span class="branch-label">Statement</span><br>
+            <strong>Statement</strong><br>
+            Upload to the proper statement location.
+          </div>
+          <div class="flow-card">
+            <span class="branch-label">CSV</span><br>
+            <strong>Insurance CSV</strong><br>
+            Add last month's insurance cost to every listed BOL.
+          </div>
+          <div class="flow-card">
+            <span class="branch-label">Other</span><br>
+            <strong>Other Email</strong><br>
+            AI checks reply rules. If no rule applies, send to manual review.
+          </div>
+          <div class="flow-success">
+            <span class="branch-label">Invoice</span><br>
+            <strong>Invoice</strong><br>
+            Extract invoice and shipment data.
+          </div>
+        </div>
+
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-note">Only invoice emails continue below</div>
+        <div class="flow-arrow">&darr;</div>
+
+        <div class="flow-card">
+          <strong>AI Extracts:</strong> carrier, invoice number, invoice amount, due date, BOL, PRO, shipment details, POD, and added charges.
+        </div>
+
+        <div class="flow-arrow">&darr;</div>
+
+        <div class="flow-card">
+          <strong>Resolve the TAI Shipment:</strong> look up the load / PRO in the webhook-built index to find the
+          TAI <code>shipmentId</code>. If no shipment is indexed yet, pause and notify so it can be matched once
+          the shipment webhook arrives.
+        </div>
+
+        <div class="flow-arrow">&darr;</div>
+
+        <div class="flow-card">
+          <strong>Update the TAI Shipment First:</strong> write the carrier PRO and invoice number as reference
+          numbers, mark the shipment delivered with the POD signed-by name, and upload the POD document before any
+          review forwarding.
+        </div>
+
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-note">Special handling checks</div>
+
+        <div class="flow-split">
+          <div class="flow-error">
+            <span class="branch-label">Unrecognized charges</span><br>
+            <strong>Unrecognized Charges</strong><br>
+            If the invoice has charges we can't identify, stop and fail for human review.
+          </div>
+          <div class="flow-warning">
+            <span class="branch-label">Added charges</span><br>
+            <strong>Added Charges</strong><br>
+            Lumper, detention, or other accessorials are deducted from the invoice total before checking the base amount in TAI. Verified extras are held for human approval.
+          </div>
+        </div>
+
+        <div class="flow-arrow">&darr;</div>
+
+        <div class="flow-note">Validation before billing</div>
+
+        <div class="flow-grid">
+          <div class="flow-card">
+            <span class="branch-label">Amount check</span><br>
+            <strong>Check TAI Buy</strong><br>
+            Compare the invoice (or adjusted base) amount against the TAI carrier cost within &plusmn;$0.50 or 2%.
+          </div>
+          <div class="flow-error">
+            <span class="branch-label">Test customer</span><br>
+            <strong>Test Customer</strong><br>
+            If the customer name contains "test", pause for manual confirmation.
+          </div>
+          <div class="flow-error">
+            <span class="branch-label">No rate</span><br>
+            <strong>Missing Rate</strong><br>
+            Pause if TAI has no customer sell rate for the shipment.
+          </div>
+          <div class="flow-warning">
+            <span class="branch-label">Low margin</span><br>
+            <strong>Profit Under $10</strong><br>
+            Pause for a rate update if profit is below $10.
+          </div>
+        </div>
+
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-note">Invoice amount decision</div>
+
+        <div class="flow-split">
+          <div class="flow-warning">
+            <span class="branch-label">Added charge match</span><br>
+            <strong>Lumper / Detention / Other Added Charge</strong><br>
+            If the invoice matches after deducting the added charge, hold the extra for human approval and keep the load fully updated.
+          </div>
+          <div class="flow-error">
+            <span class="branch-label">No match</span><br>
+            <strong>Amount Does Not Match</strong><br>
+            Mark the invoice <code>UNMATCHED_AMOUNT</code> and stop for review.
+          </div>
+        </div>
+
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-note">Final clean path</div>
+
+        <div class="flow-success">
+          <span class="branch-label">Everything correct</span><br>
+          <strong>Clean Match</strong><br>
+          Shipment resolved, amount matches TAI, PRO + invoice number written, shipment delivered, POD uploaded,
+          carrier bill approved, customer rate and margin pass, the customer invoice is generated in TAI, and it is
+          emailed to the customer with the POD attached.
+        </div>
+      </div>
+    </section>
+
+    <section class="summary-grid">
+      <div class="summary-card">
+        <h3>Email Intake</h3>
+        <p>Classifies statements, CSV files, other emails, and invoices.</p>
+      </div>
+      <div class="summary-card">
+        <h3>TAI Shipment Match</h3>
+        <p>Resolves each invoice to its TAI shipmentId through the webhook-built reference index.</p>
+      </div>
+      <div class="summary-card">
+        <h3>TAI Updates</h3>
+        <p>Writes PRO and invoice numbers, marks delivered, uploads POD, and approves the carrier bill.</p>
+      </div>
+      <div class="summary-card">
+        <h3>Billing &amp; Review</h3>
+        <p>Generates clean customer invoices or pauses for labeled human review on exceptions.</p>
+      </div>
+    </section>
+
+    <h2 class="section-title">End-to-End Workflow</h2>
+
+    <section class="workflow">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div>
+          <h3>Open and Classify Every Email</h3>
+          <p>The system monitors the Coast to Coast Carriers inbox, opens each email, reads the body and attachments, and decides which workflow should run.</p>
+          <div class="tag-row">
+            <span class="tag">Statement</span>
+            <span class="tag">Insurance CSV</span>
+            <span class="tag">Other Email</span>
+            <span class="tag">Invoice</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">2</div>
+        <div>
+          <h3>Index Shipments From TAI Webhooks</h3>
+          <p>TAI POSTs full shipment payloads to us on create, update, and status events. Every reference number on the shipment and its stops is mapped to the TAI <code>shipmentId</code> so invoices can be matched later.</p>
+          <div class="success-box">
+            Because carrier invoices only carry text references (load #, PRO, BOL), this index is what lets us resolve them to TAI's numeric shipment ID.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">3</div>
+        <div>
+          <h3>Extract Invoice Data</h3>
+          <p>If the email is an invoice, AI extracts the data needed to update TAI and validate billing.</p>
+          <div class="tag-row">
+            <span class="tag">Carrier</span>
+            <span class="tag">Invoice Number</span>
+            <span class="tag">Invoice Amount</span>
+            <span class="tag">Due Date</span>
+            <span class="tag">BOL</span>
+            <span class="tag">PRO Number</span>
+            <span class="tag">POD</span>
+            <span class="tag">Added Charges</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">4</div>
+        <div>
+          <h3>Resolve the TAI Shipment</h3>
+          <p>The system looks up the PRO first, then the load number, in the webhook-built index to find the TAI <code>shipmentId</code>.</p>
+          <div class="rule-box">
+            <strong>If no shipment is indexed:</strong> pause as <code>tai_shipment_not_found</code> and notify, since the shipment webhook may not have arrived yet or the reference does not match TAI.
+          </div>
+          <div class="success-box">
+            <strong>If already completed:</strong> the workflow stops with <code>ALREADY_COMPLETED</code> so the customer is never double-invoiced.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">5</div>
+        <div>
+          <h3>Check Charges</h3>
+          <p>Before touching the amount, the system screens the extracted charges.</p>
+          <ul>
+            <li>If there are <code>unrecognized charges</code>, stop and fail for human review.</li>
+            <li>If extra charges are present with <code>no proof</code> attached, stop and fail for human review.</li>
+            <li>Added charges that do have proof are deducted from the invoice total before the base amount is checked.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">6</div>
+        <div>
+          <h3>Validate Invoice Amount Against TAI</h3>
+          <p>The system compares the base carrier amount (invoice total minus any approved added charges) against the TAI carrier cost (buy).</p>
+          <div class="success-box">
+            <strong>If within &plusmn;$0.50 or 2%:</strong> the amount is accepted and the workflow continues.
+          </div>
+          <div class="rule-box">
+            <strong>If it does not match:</strong> mark the invoice <code>UNMATCHED_AMOUNT</code> and stop for review.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">7</div>
+        <div>
+          <h3>Write PRO and Invoice Number to TAI</h3>
+          <p>The carrier PRO number is added as a <code>LinehaulCarrierProNumber</code> reference, and the carrier invoice number is recorded on the shipment. This step is idempotent — it skips the write if the PRO already matches.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">8</div>
+        <div>
+          <h3>Mark Delivered and Upload the POD</h3>
+          <p>The delivery stop is updated with the actual arrival and departure times and the POD signed-by name, then the POD document is uploaded to the TAI shipment.</p>
+          <ul>
+            <li>If the shipment is already delivered, the step is treated as complete.</li>
+            <li>If there is no delivery stop, the step is safely skipped.</li>
+            <li>The POD is extracted from the carrier invoice PDF and attached to the shipment.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">9</div>
+        <div>
+          <h3>Approve the Carrier Bill</h3>
+          <p>The carrier bill is approved in TAI accounting using the invoice number, amount, due date, and the shipment's transit leg type. This step is idempotent — an already-approved matching bill is reused instead of duplicated.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">10</div>
+        <div>
+          <h3>Validate Customer, Rate, and Margin</h3>
+          <p>Before customer billing, the system confirms the load is billable and profitable using the TAI customer (sell) rate.</p>
+          <ul>
+            <li>If the customer name contains <code>test</code>, pause for manual confirmation.</li>
+            <li>If TAI has no customer rate, pause as <code>needs_customer_rate_review</code>.</li>
+            <li>If profit is below <code>$10</code>, pause for a rate update with a low-margin notice.</li>
+            <li>If customer, rate, and margin all pass, continue to invoicing.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">11</div>
+        <div>
+          <h3>Generate the Customer Invoice in TAI</h3>
+          <p>The system creates and approves the customer invoice for the shipment. This is idempotent: an existing invoice is reused, and its total is sanity-checked against the expected customer rate before proceeding.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">12</div>
+        <div>
+          <h3>Send the Customer Invoice</h3>
+          <p>The system builds a clean customer invoice PDF and emails it to the customer.</p>
+          <ul>
+            <li>Attach the POD extracted from the carrier invoice.</li>
+            <li>Include the customer invoice PDF generated from TAI.</li>
+            <li>Keep all extracted carrier invoice details and step results on the load for audit and review.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <h2 class="section-title">Manual Review and Pauses</h2>
+
+    <section class="task-grid">
+      <div class="task-card">
+        <h3>TAI Shipment Not Found</h3>
+        <p>The invoice could not be matched to a TAI shipment yet. The workflow pauses until the shipment webhook arrives or the reference is corrected.</p>
+      </div>
+      <div class="task-card">
+        <h3>Unrecognized Charges</h3>
+        <p>The invoice carries charges the system cannot identify. Processing stops and the invoice is failed for human review.</p>
+      </div>
+      <div class="task-card">
+        <h3>Charges Need Proof</h3>
+        <p>Extra charges are present without supporting proof attached, so the invoice is held and failed for review.</p>
+      </div>
+      <div class="task-card">
+        <h3>Extra Charges Pending Review</h3>
+        <p>Added charges were verified against proof but are never auto-invoiced — they are held for human approval.</p>
+      </div>
+      <div class="task-card">
+        <h3>Unmatched Amount</h3>
+        <p>The invoice amount does not match the TAI carrier cost within tolerance and cannot be cleared automatically.</p>
+      </div>
+      <div class="task-card">
+        <h3>Test Customer</h3>
+        <p>The shipment's customer name contains "test", so the workflow pauses for manual confirmation before billing.</p>
+      </div>
+      <div class="task-card">
+        <h3>Needs Customer Rate Review</h3>
+        <p>No customer rate is on the TAI shipment, or the profit is too low. The workflow pauses for a rate update.</p>
+      </div>
+      <div class="task-card">
+        <h3>Invoice Generation Failed</h3>
+        <p>The TAI customer invoice could not be created or its total did not match the expected rate. The workflow pauses for review.</p>
+      </div>
+      <div class="task-card">
+        <h3>Already Completed</h3>
+        <p>The invoice was already fully processed. The workflow stops to prevent double-invoicing the customer.</p>
+      </div>
+    </section>
+
+    <section class="footer-note">
+      <h2>Business Value</h2>
+      <p>
+        This workflow keeps email handling, TAI shipment updates, exception routing, and customer invoicing in one
+        automated process for Coast to Coast Carriers. Employees only review the invoices that need judgment, while
+        clean invoices move through to the customer with the POD attached — every step logged and idempotent so a
+        re-run never duplicates work.
+      </p>
+    </section>
+  </main>
+</body>
+</html>
