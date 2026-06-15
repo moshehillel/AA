@@ -23,18 +23,11 @@ window.CLIENTS = {
     tenantId: "default",
     tms: "primus",
   },
-  "innovative-tai": {
-    name: "Innovative Carriers (TAI)",
-    functionsBaseUrl:
-      "https://us-central1-tai-invoice-automation.cloudfunctions.net",
-    tenantId: "innovative_tai",
-    tms: "tai",
-  },
-  "coast-to-coast-carriers": {
+  "ctc": {
     name: "Coast to Coast Carriers",
     functionsBaseUrl:
       "https://us-central1-tai-invoice-automation.cloudfunctions.net",
-    tenantId: "coast_to_coast",
+    tenantId: "ctc",
     tms: "tai",
   },
 };

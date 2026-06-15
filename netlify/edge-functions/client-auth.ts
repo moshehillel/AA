@@ -9,11 +9,7 @@ import type { Context } from "https://edge.netlify.com";
 // Environment variables, hyphens in the slug become underscores, e.g.
 // CLIENT_INNOVATIVE_CARRIERS_PASSWORD) or the dashboard responds with 503
 // until one is set.
-const CLIENT_SLUGS = [
-  "innovative-carriers",
-  "innovative-tai",
-  "coast-to-coast-carriers",
-];
+const CLIENT_SLUGS = ["innovative-carriers", "ctc"];
 
 export default async (request: Request, context: Context) => {
   const url = new URL(request.url);
