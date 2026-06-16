@@ -2,8 +2,6 @@
   "use strict";
 
   function getClientSlug() {
-    // The Edge Function rewrites "/<slug>[/...]" to "/dashboard/...", so the
-    // first path segment the browser shows is the client slug.
     const segments = window.location.pathname.split("/").filter(Boolean);
     return segments[0] || "";
   }
@@ -22,8 +20,14 @@
   document.getElementById("dashboardTitle").textContent = `${client.name} Dashboard`;
 
   const BASE_URL = client.functionsBaseUrl;
+  const TENANT_ID = client.tenantId || "default";
+  const TMS = (client.tms || "primus").toLowerCase();
+  const tenantQuery = `tenantId=${encodeURIComponent(TENANT_ID)}`;
 
   const els = {
+    tmsBadge: document.getElementById("tmsBadge"),
+    tenantLabel: document.getElementById("tenantLabel"),
+    taiHintBanner: document.getElementById("taiHintBanner"),
     badge: document.getElementById("gmailStatusBadge"),
     connectBtn: document.getElementById("connectGmailBtn"),
     disconnectBtn: document.getElementById("disconnectGmailBtn"),
@@ -37,10 +41,26 @@
     chartCanvas: document.getElementById("statsChart"),
     refreshLogsBtn: document.getElementById("refreshLogsBtn"),
     logsContainer: document.getElementById("logsContainer"),
+    refreshInvoicesBtn: document.getElementById("refreshInvoicesBtn"),
+    invoicesContainer: document.getElementById("invoicesContainer"),
   };
 
   let chart = null;
   let activeRange = "week";
+
+  // TMS badge + tenant label
+  if (els.tmsBadge) {
+    els.tmsBadge.hidden = false;
+    els.tmsBadge.textContent = TMS === "tai" ? "TAI TMS" : "Primus TMS";
+    els.tmsBadge.className = `tms-badge tms-${TMS}`;
+  }
+  if (els.tenantLabel) {
+    els.tenantLabel.hidden = false;
+    els.tenantLabel.textContent = `Tenant: ${TENANT_ID}`;
+  }
+  if (els.taiHintBanner && TMS === "tai") {
+    els.taiHintBanner.hidden = false;
+  }
 
   function showError(message) {
     if (!message) {
@@ -53,7 +73,20 @@
   }
 
   async function fetchJson(path) {
-    const response = await fetch(`${BASE_URL}${path}`);
+    const sep = path.includes("?") ? "&" : "?";
+    const response = await fetch(`${BASE_URL}${path}${sep}${tenantQuery}`);
+    if (!response.ok) {
+      throw new Error(`Request to ${path} failed (${response.status})`);
+    }
+    return response.json();
+  }
+
+  async function postJson(path, body) {
+    const response = await fetch(`${BASE_URL}${path}?${tenantQuery}`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: body ? JSON.stringify({...body, tenantId: TENANT_ID}) : undefined,
+    });
     if (!response.ok) {
       throw new Error(`Request to ${path} failed (${response.status})`);
     }
@@ -88,6 +121,20 @@
       month: "short", day: "numeric",
       hour: "2-digit", minute: "2-digit",
     });
+  }
+
+  function formatMoney(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return "—";
+    return `$${n.toFixed(2)}`;
+  }
+
+  function statusClass(status) {
+    const s = String(status || "").toLowerCase();
+    if (s === "completed") return "status-completed";
+    if (s === "running") return "status-running";
+    if (s === "waiting_manual" || s === "failed") return "status-attention";
+    return "status-neutral";
   }
 
   function renderLogs(logs) {
@@ -125,6 +172,54 @@
       console.error("loadLogs failed:", error);
     } finally {
       els.refreshLogsBtn.disabled = false;
+    }
+  }
+
+  function renderInvoices(invoices) {
+    if (!invoices || invoices.length === 0) {
+      els.invoicesContainer.innerHTML =
+        '<p class="panel-empty">No invoices yet.</p>';
+      return;
+    }
+
+    const taiHeader = TMS === "tai" ? "<th>TAI Shipment</th>" : "";
+    const rows = invoices.map((inv) => {
+      const status = inv.finalWorkflowStatus || inv.decisionStage || "—";
+      const taiCol = TMS === "tai" ?
+        `<td>${inv.taiShipmentId || "—"}</td>` : "";
+      return `<tr>
+        <td class="log-time">${formatLogTime(inv.createdAt)}</td>
+        <td>${inv.loadNumber || "—"}</td>
+        <td>${inv.proNumber || "—"}</td>
+        <td>${inv.carrierName || "—"}</td>
+        <td>${formatMoney(inv.invoiceAmount)}</td>
+        ${taiCol}
+        <td><span class="status-pill ${statusClass(status)}">${status}</span></td>
+        <td class="log-message">${inv.decisionReason || inv.currentStep || "—"}</td>
+      </tr>`;
+    }).join("");
+
+    els.invoicesContainer.innerHTML =
+      `<table class="logs-table">
+        <thead><tr>
+          <th>Created</th><th>Load #</th><th>PRO</th><th>Carrier</th>
+          <th>Amount</th>${taiHeader}<th>Status</th><th>Detail</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  async function loadInvoices() {
+    els.refreshInvoicesBtn.disabled = true;
+    try {
+      const data = await fetchJson("/getRecentInvoices?limit=20");
+      renderInvoices(data.invoices || []);
+    } catch (error) {
+      els.invoicesContainer.innerHTML =
+        '<p class="panel-empty">Could not load invoices.</p>';
+      console.error("loadInvoices failed:", error);
+    } finally {
+      els.refreshInvoicesBtn.disabled = false;
     }
   }
 
@@ -208,15 +303,15 @@
   });
 
   els.connectBtn.addEventListener("click", () => {
-    window.location.href = `${BASE_URL}/gmailConnect`;
+    window.location.href =
+      `${BASE_URL}/gmailConnect?${tenantQuery}`;
   });
 
   els.disconnectBtn.addEventListener("click", async () => {
     if (!confirm("Disconnect Gmail? The system will stop processing emails until you reconnect.")) return;
     els.disconnectBtn.disabled = true;
     try {
-      const response = await fetch(`${BASE_URL}/gmailDisconnect`, {method: "POST"});
-      const data = await response.json();
+      const data = await postJson("/gmailDisconnect");
       if (data.ok) {
         await loadGmailStatus();
         showRunResult("Gmail disconnected.", false);
@@ -231,6 +326,7 @@
   });
 
   els.refreshLogsBtn.addEventListener("click", loadLogs);
+  els.refreshInvoicesBtn.addEventListener("click", loadInvoices);
 
   function showRunResult(message, isError) {
     els.runResultBanner.textContent = message;
@@ -245,19 +341,29 @@
     els.runResultBanner.hidden = true;
 
     try {
-      const response = await fetch(`${BASE_URL}/checkGmailInbox`, {
-        method: "POST",
-      });
-      const data = await response.json();
+      const data = await postJson("/checkGmailInbox");
       if (data.ok) {
-        const n = data.processedMessages || 0;
-        showRunResult(
-          n === 0
-            ? "Inbox checked — no new emails to process."
-            : `Done — processed ${n} email${n === 1 ? "" : "s"}.`,
-          false,
-        );
+        const tenantResult = Array.isArray(data.tenants) ?
+          data.tenants.find((t) => t.tenantId === TENANT_ID) ||
+          data.tenants[0] : null;
+        const processed = tenantResult ?
+          (tenantResult.processed || 0) :
+          (data.processedMessages || 0);
+        const connected = tenantResult ? tenantResult.connected !== false : true;
+
+        if (tenantResult && tenantResult.connected === false) {
+          showRunResult("Gmail is not connected for this tenant.", true);
+        } else {
+          showRunResult(
+            processed === 0 ?
+              "Inbox checked — no new emails to process." :
+              `Done — queued ${processed} email${processed === 1 ? "" : "s"}.`,
+            false,
+          );
+        }
         loadStats(activeRange);
+        loadInvoices();
+        loadLogs();
       } else {
         showRunResult(
           "Check failed: " + (data.error || "unknown error"),
@@ -341,6 +447,8 @@
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
           clientName: client.name,
+          tenantId: TENANT_ID,
+          tms: TMS,
           messages: chatHistory,
         }),
       });
@@ -408,5 +516,6 @@
 
   loadGmailStatus();
   setActiveRange(activeRange);
+  loadInvoices();
   loadLogs();
 })();

@@ -9,7 +9,13 @@
 </head>
 <body>
   <header class="topbar">
-    <h1 id="dashboardTitle">Dashboard</h1>
+    <div class="topbar-brand">
+      <h1 id="dashboardTitle">Dashboard</h1>
+      <div class="topbar-meta">
+        <span id="tmsBadge" class="tms-badge tms-primus" hidden>TMS</span>
+        <span id="tenantLabel" class="tenant-label" hidden></span>
+      </div>
+    </div>
     <div class="gmail-status">
       <span id="gmailStatusBadge" class="badge badge-unknown">Checking…</span>
       <button id="runEmailCheckBtn" class="btn btn-outline">Check Inbox</button>
@@ -20,6 +26,12 @@
 
   <main id="dashboardMain">
     <p id="runResultBanner" class="run-result-banner" hidden></p>
+    <p id="taiHintBanner" class="info-banner" hidden>
+      TAI workflow: carrier invoices are matched to shipments via the TAI webhook
+      index. Make sure <code>ShipmentCreateUrl</code> and
+      <code>ShipmentDetailUpdateUrl</code> point at your
+      <code>taiWebhook</code> endpoint.
+    </p>
 
     <div class="range-switch" role="tablist" aria-label="Time range">
       <button class="range-btn is-active" data-range="week">Week</button>
@@ -47,6 +59,16 @@
     </section>
 
     <p id="errorBanner" class="error-banner" hidden></p>
+
+    <section class="panel-section">
+      <div class="panel-header">
+        <h2 class="panel-title">Recent Invoices</h2>
+        <button id="refreshInvoicesBtn" class="btn btn-outline btn-sm">Refresh</button>
+      </div>
+      <div id="invoicesContainer" class="panel-container">
+        <p class="panel-empty">Loading…</p>
+      </div>
+    </section>
 
     <section class="logs-section">
       <div class="logs-header">
