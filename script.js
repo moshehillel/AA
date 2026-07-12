@@ -69,3 +69,17 @@ if ('IntersectionObserver' in window) {
 
   revealItems.forEach((item) => revealObserver.observe(item));
 }
+
+// Logo carousel rotation
+const logoSlides = document.querySelectorAll('.logo-slide');
+let currentLogoIndex = 0;
+
+function rotateLogo() {
+  logoSlides[currentLogoIndex].classList.remove('active');
+  currentLogoIndex = (currentLogoIndex + 1) % logoSlides.length;
+  logoSlides[currentLogoIndex].classList.add('active');
+}
+
+if (logoSlides.length > 0) {
+  setInterval(rotateLogo, 7000);
+}
