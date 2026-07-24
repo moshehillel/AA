@@ -1,0 +1,12 @@
+{
+  "name": "advanced-automations",
+  "version": "1.0.0",
+  "description": "Custom Software & AI Automation website",
+  "main": "index.html",
+  "scripts": {
+    "start": "netlify dev"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.7"
+  }
+}

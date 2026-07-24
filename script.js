@@ -83,3 +83,59 @@ function rotateLogo() {
 if (logoSlides.length > 0) {
   setInterval(rotateLogo, 7000);
 }
+
+// Contact form handling
+const contactForm = document.getElementById('contact-form');
+const formMessage = document.getElementById('form-message');
+
+if (contactForm) {
+  contactForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const submitButton = contactForm.querySelector('button[type="submit"]');
+    const originalText = submitButton.textContent;
+    
+    // Disable button and show loading state
+    submitButton.disabled = true;
+    submitButton.textContent = 'Sending...';
+    
+    // Hide previous message
+    formMessage.className = 'form-message';
+    formMessage.style.display = 'none';
+    
+    try {
+      const formData = {
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        subject: document.getElementById('subject').value,
+        message: document.getElementById('message').value
+      };
+      
+      const response = await fetch('/.netlify/functions/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        formMessage.textContent = data.message || 'Thank you for your message. We\'ll get back to you soon!';
+        formMessage.className = 'form-message success';
+        contactForm.reset();
+      } else {
+        formMessage.textContent = data.error || 'Something went wrong. Please try again.';
+        formMessage.className = 'form-message error';
+      }
+    } catch (error) {
+      console.error('Form submission error:', error);
+      formMessage.textContent = 'Network error. Please check your connection and try again.';
+      formMessage.className = 'form-message error';
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = originalText;
+    }
+  });
+}

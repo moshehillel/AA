@@ -330,10 +330,27 @@
         <p class="eyebrow">Let's Build</p>
         <h2>Your Business Shouldn't Run On Manual Work</h2>
         <p>Modern businesses automate. Let us build the systems that help your company scale faster.</p>
-        <div class="hero-buttons">
-          <a href="mailto:info@advancedautomations.net?subject=Schedule%20a%20Consultation" class="btn btn-primary">Schedule a Consultation</a>
-          <a href="mailto:info@advancedautomations.net" class="btn btn-secondary light">Contact Us</a>
-        </div>
+        
+        <form id="contact-form" class="contact-form">
+          <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="subject">Subject</label>
+            <input type="text" id="subject" name="subject" placeholder="How can we help?">
+          </div>
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea id="message" name="message" rows="4" required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Send Message</button>
+          <div id="form-message" class="form-message"></div>
+        </form>
       </div>
     </section>
   </main>
