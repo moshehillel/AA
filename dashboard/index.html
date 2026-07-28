@@ -34,6 +34,7 @@
     </p>
 
     <div class="range-switch" role="tablist" aria-label="Time range">
+      <button class="range-btn" data-range="day">Day</button>
       <button class="range-btn is-active" data-range="week">Week</button>
       <button class="range-btn" data-range="month">Month</button>
       <button class="range-btn" data-range="year">Year</button>
@@ -43,6 +44,14 @@
       <article class="card">
         <p class="card-label">Invoices processed</p>
         <p class="card-value" id="statInvoices">–</p>
+      </article>
+      <article class="card">
+        <p class="card-label">Workflows completed</p>
+        <p class="card-value" id="statWorkflows">–</p>
+      </article>
+      <article class="card">
+        <p class="card-label">With added charges</p>
+        <p class="card-value" id="statAddedCharges">–</p>
       </article>
       <article class="card">
         <p class="card-label">Emails replied</p>
@@ -70,12 +79,28 @@
       </div>
     </section>
 
+    <section class="panel-section">
+      <div class="panel-header">
+        <h2 class="panel-title">Open Tasks</h2>
+        <span id="taskCountBadge" class="task-count-badge">0 open</span>
+      </div>
+      <div id="tasksContainer" class="tasks-container">
+        <p class="panel-empty">Loading…</p>
+      </div>
+    </section>
+
     <section class="logs-section">
       <div class="logs-header">
-        <h2 class="logs-title">Recent Activity</h2>
-        <button id="refreshLogsBtn" class="btn btn-outline btn-sm">Refresh</button>
+        <div>
+          <h2 class="logs-title">Activity Log</h2>
+          <p class="logs-subtitle">AI-summarized flows (not raw engine logs)</p>
+        </div>
+        <div class="logs-actions">
+          <button id="showMoreLogsBtn" class="btn btn-outline btn-sm" hidden>Show more</button>
+          <button id="refreshLogsBtn" class="btn btn-outline btn-sm">Refresh</button>
+        </div>
       </div>
-      <div id="logsContainer" class="logs-container">
+      <div id="logsContainer" class="logs-container logs-summaries">
         <p class="logs-empty">Loading…</p>
       </div>
     </section>

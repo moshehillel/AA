@@ -35,18 +35,28 @@
     runResultBanner: document.getElementById("runResultBanner"),
     rangeBtns: Array.from(document.querySelectorAll(".range-btn")),
     statInvoices: document.getElementById("statInvoices"),
+    statWorkflows: document.getElementById("statWorkflows"),
+    statAddedCharges: document.getElementById("statAddedCharges"),
     statReplied: document.getElementById("statReplied"),
     statForwarded: document.getElementById("statForwarded"),
     errorBanner: document.getElementById("errorBanner"),
     chartCanvas: document.getElementById("statsChart"),
     refreshLogsBtn: document.getElementById("refreshLogsBtn"),
+    showMoreLogsBtn: document.getElementById("showMoreLogsBtn"),
     logsContainer: document.getElementById("logsContainer"),
     refreshInvoicesBtn: document.getElementById("refreshInvoicesBtn"),
     invoicesContainer: document.getElementById("invoicesContainer"),
+    tasksContainer: document.getElementById("tasksContainer"),
+    taskCountBadge: document.getElementById("taskCountBadge"),
   };
 
   let chart = null;
   let activeRange = "week";
+  let logOffset = 0;
+  let logHasMore = false;
+  let openTaskCount = 0;
+  let statsTotals = null;
+  const LOG_PAGE = 20;
 
   // TMS badge + tenant label
   if (els.tmsBadge) {
@@ -137,41 +147,162 @@
     return "status-neutral";
   }
 
-  function renderLogs(logs) {
-    if (!logs || logs.length === 0) {
-      els.logsContainer.innerHTML =
-        '<p class="logs-empty">No activity yet.</p>';
-      return;
-    }
-    const rows = logs.map((log) => {
-      const level = (log.level || "info").toLowerCase();
-      return `<tr>
-        <td class="log-time">${formatLogTime(log.timestamp)}</td>
-        <td><span class="log-level log-level-${level}">${level}</span></td>
-        <td><span class="log-category">${log.category || "—"}</span></td>
-        <td class="log-message">${log.message || "—"}</td>
-      </tr>`;
-    }).join("");
-    els.logsContainer.innerHTML =
-      `<table class="logs-table">
-        <thead><tr>
-          <th>Time</th><th>Level</th><th>Category</th><th>Message</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`;
+  function summaryStatusClass(status) {
+    const s = String(status || "").toLowerCase();
+    if (s.includes("complete") || s === "approved") return "status-completed";
+    if (s.includes("fail") || s.includes("error")) return "status-attention";
+    return "status-running";
   }
 
-  async function loadLogs() {
-    els.refreshLogsBtn.disabled = true;
+  function taskTypeLabel(type) {
+    return String(type || "task").replace(/_/g, " ");
+  }
+
+  function renderSummaries(summaries, append) {
+    if (!summaries || summaries.length === 0) {
+      if (!append) {
+        els.logsContainer.innerHTML =
+          '<p class="logs-empty">No summarized activity yet. Flows appear ' +
+          "here after they complete.</p>";
+      }
+      return;
+    }
+
+    const html = summaries.map((s) => {
+      const status = s.finalStatus || "—";
+      const body = s.aiSummary || s.failureReason || s.lastStep || "No summary";
+      const fix = s.recommendedFix ?
+        `<p class="summary-fix"><strong>Suggested fix:</strong> ${bodyEsc(s.recommendedFix)}</p>` :
+        "";
+      return `<article class="summary-card">
+        <div class="summary-meta">
+          <span class="log-time">${formatLogTime(s.createdAt)}</span>
+          ${s.invoiceId ? `<span class="log-category">Invoice ${bodyEsc(s.invoiceId)}</span>` : ""}
+          <span class="status-pill ${summaryStatusClass(status)}">${bodyEsc(status)}</span>
+        </div>
+        <p class="summary-body">${bodyEsc(body)}</p>
+        ${fix}
+      </article>`;
+    }).join("");
+
+    if (append) {
+      els.logsContainer.insertAdjacentHTML("beforeend", html);
+    } else {
+      els.logsContainer.innerHTML = html;
+    }
+    if (els.showMoreLogsBtn) {
+      els.showMoreLogsBtn.hidden = !logHasMore;
+    }
+  }
+
+  function bodyEsc(text) {
+    return String(text ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  async function loadSummaries(append) {
+    if (!append) {
+      els.refreshLogsBtn.disabled = true;
+    } else if (els.showMoreLogsBtn) {
+      els.showMoreLogsBtn.disabled = true;
+    }
     try {
-      const data = await fetchJson("/getRecentLogs?limit=40");
-      renderLogs(data.logs || []);
+      const offset = append ? logOffset : 0;
+      const data = await fetchJson(
+          `/getRecentSummaries?limit=${LOG_PAGE}&offset=${offset}`,
+      );
+      if (!append) {
+        logOffset = 0;
+      }
+      const summaries = data.summaries || [];
+      logOffset += summaries.length;
+      logHasMore = !!data.hasMore;
+      renderSummaries(summaries, append);
     } catch (error) {
-      els.logsContainer.innerHTML =
-        '<p class="logs-empty">Could not load logs.</p>';
-      console.error("loadLogs failed:", error);
+      if (!append) {
+        els.logsContainer.innerHTML =
+          '<p class="logs-empty">Could not load summarized logs. ' +
+          "Deploy getRecentSummaries to enable this view.</p>";
+      }
+      console.error("loadSummaries failed:", error);
     } finally {
       els.refreshLogsBtn.disabled = false;
+      if (els.showMoreLogsBtn) {
+        els.showMoreLogsBtn.disabled = false;
+      }
+    }
+  }
+
+  function renderTasks(tasks) {
+    openTaskCount = tasks ? tasks.length : 0;
+    if (els.taskCountBadge) {
+      els.taskCountBadge.textContent = `${openTaskCount} open`;
+    }
+
+    if (!tasks || tasks.length === 0) {
+      els.tasksContainer.innerHTML =
+        '<p class="panel-empty">No open tasks — you\'re all caught up.</p>';
+      return;
+    }
+
+    els.tasksContainer.innerHTML = tasks.map((task) => {
+      const meta = [
+        task.loadNumber ? `Load ${bodyEsc(task.loadNumber)}` : "",
+        task.carrierName ? bodyEsc(task.carrierName) : "",
+        task.chargesTotal ? formatMoney(task.chargesTotal) : "",
+      ].filter(Boolean).join(" · ");
+      return `<article class="task-card" data-id="${bodyEsc(task.id)}" data-source="${bodyEsc(task.source || "dashboardTasks")}">
+        <div class="task-main">
+          <div class="task-title-row">
+            <h3 class="task-title">${bodyEsc(task.title || "Task")}</h3>
+            <span class="task-type-pill">${bodyEsc(taskTypeLabel(task.type))}</span>
+          </div>
+          ${meta ? `<p class="task-meta">${meta}</p>` : ""}
+          ${task.description ? `<p class="task-desc">${bodyEsc(task.description)}</p>` : ""}
+          <p class="task-time">${formatLogTime(task.createdAt)}</p>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm task-dismiss-btn">Dismiss</button>
+      </article>`;
+    }).join("");
+
+    els.tasksContainer.querySelectorAll(".task-dismiss-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const card = btn.closest(".task-card");
+        const taskId = card.dataset.id;
+        const source = card.dataset.source;
+        btn.disabled = true;
+        try {
+          await postJson("/dismissDashboardTask", {taskId, source});
+          card.remove();
+          openTaskCount = els.tasksContainer.querySelectorAll(".task-card").length;
+          if (els.taskCountBadge) {
+            els.taskCountBadge.textContent = `${openTaskCount} open`;
+          }
+          if (!openTaskCount) {
+            els.tasksContainer.innerHTML =
+              '<p class="panel-empty">No open tasks — you\'re all caught up.</p>';
+          }
+        } catch (error) {
+          showError("Could not dismiss task. Please try again.");
+          btn.disabled = false;
+          console.error("dismissTask failed:", error);
+        }
+      });
+    });
+  }
+
+  async function loadTasks() {
+    try {
+      const data = await fetchJson("/getDashboardTasks?limit=50");
+      renderTasks(data.tasks || []);
+    } catch (error) {
+      els.tasksContainer.innerHTML =
+        '<p class="panel-empty">Could not load tasks. Deploy getDashboardTasks ' +
+        "to enable the task manager.</p>";
+      console.error("loadTasks failed:", error);
     }
   }
 
@@ -225,6 +356,12 @@
 
   function formatPeriodLabel(period, range) {
     const date = new Date(period);
+    if (range === "day") {
+      return date.toLocaleTimeString(undefined, {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    }
     if (range === "year") {
       return date.toLocaleDateString(undefined, {month: "short", year: "numeric"});
     }
@@ -239,6 +376,13 @@
         data: series.map((row) => row.invoicesProcessed),
         borderColor: "#4f46e5",
         backgroundColor: "#4f46e5",
+        tension: 0.3,
+      },
+      {
+        label: "With added charges",
+        data: series.map((row) => row.invoicesWithAddedCharges || 0),
+        borderColor: "#d97706",
+        backgroundColor: "#d97706",
         tension: 0.3,
       },
       {
@@ -280,9 +424,17 @@
     showError(null);
     try {
       const data = await fetchJson(`/getDashboardStats?range=${range}`);
-      els.statInvoices.textContent = data.totals.invoicesProcessed;
-      els.statReplied.textContent = data.totals.emailsReplied;
-      els.statForwarded.textContent = data.totals.emailsForwarded;
+      statsTotals = data.totals || null;
+      els.statInvoices.textContent = data.totals.invoicesProcessed ?? "–";
+      if (els.statWorkflows) {
+        els.statWorkflows.textContent = data.totals.workflowsCompleted ?? "–";
+      }
+      if (els.statAddedCharges) {
+        els.statAddedCharges.textContent =
+          data.totals.invoicesWithAddedCharges ?? "–";
+      }
+      els.statReplied.textContent = data.totals.emailsReplied ?? "–";
+      els.statForwarded.textContent = data.totals.emailsForwarded ?? "–";
       renderChart(data.series, range);
     } catch (error) {
       console.error("loadStats failed:", error);
@@ -325,7 +477,10 @@
     }
   });
 
-  els.refreshLogsBtn.addEventListener("click", loadLogs);
+  els.refreshLogsBtn.addEventListener("click", () => loadSummaries(false));
+  if (els.showMoreLogsBtn) {
+    els.showMoreLogsBtn.addEventListener("click", () => loadSummaries(true));
+  }
   els.refreshInvoicesBtn.addEventListener("click", loadInvoices);
 
   function showRunResult(message, isError) {
@@ -363,7 +518,8 @@
         }
         loadStats(activeRange);
         loadInvoices();
-        loadLogs();
+        loadSummaries(false);
+        loadTasks();
       } else {
         showRunResult(
           "Check failed: " + (data.error || "unknown error"),
@@ -450,6 +606,13 @@
           tenantId: TENANT_ID,
           tms: TMS,
           messages: chatHistory,
+          dashboardContext: {
+            gmailConnected: els.badge.classList.contains("badge-connected"),
+            timeRange: activeRange,
+            statsTotals,
+            openTaskCount,
+            tms: TMS,
+          },
         }),
       });
       if (!response.ok) {
@@ -517,5 +680,6 @@
   loadGmailStatus();
   setActiveRange(activeRange);
   loadInvoices();
-  loadLogs();
+  loadSummaries(false);
+  loadTasks();
 })();
