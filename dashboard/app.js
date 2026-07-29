@@ -98,24 +98,26 @@
     return response.json();
   }
 
-  async function loadGmailStatus() {
+  async function loadMailStatus() {
     try {
-      const data = await fetchJson("/getGmailStatus");
+      const data = await fetchJson("/getMailStatus");
+      const provider =
+        data.provider === "gmail" ? "Gmail" : "Outlook";
       if (data.connected) {
-        els.badge.textContent = "Gmail connected";
+        els.badge.textContent = `${provider} connected`;
         els.badge.className = "badge badge-connected";
-        els.connectBtn.textContent = "Reconnect Gmail";
+        els.connectBtn.textContent = `Reconnect ${provider}`;
         els.disconnectBtn.hidden = false;
       } else {
-        els.badge.textContent = "Gmail not connected";
+        els.badge.textContent = `${provider} not connected`;
         els.badge.className = "badge badge-disconnected";
-        els.connectBtn.textContent = "Connect Gmail";
+        els.connectBtn.textContent = `Connect ${provider}`;
         els.disconnectBtn.hidden = true;
       }
     } catch (error) {
       els.badge.textContent = "Status unavailable";
       els.badge.className = "badge badge-unknown";
-      console.error("loadGmailStatus failed:", error);
+      console.error("loadMailStatus failed:", error);
     }
   }
 
@@ -161,14 +163,20 @@
           of activity and emails Lisa a short bullet list every day at
           <strong>6:00 PM Eastern</strong>.
         </p>
-        <p>Examples of what the email includes:</p>
+        <p>Examples of what the email includes (sample format only):</p>
         <ul class="logs-digest-examples">
-          <li>Processed carrier invoice for load 265376 (Forward Air).</li>
-          <li>Emailed POD follow-up to customer.</li>
-          <li>Ignored 3 past-due invoice re-sends.</li>
-          <li>Processed insurance invoice #INV-12345.</li>
-          <li>Waiting on customer email approval for 2 loads.</li>
+          <li>Invoiced load #123456 (Example Carrier) — $1,250.00, Primus #98765.</li>
+          <li>Emailed POD follow-up — load #123461.</li>
+          <li>Ignored past-due re-send — load #123400.</li>
+          <li>Processed insurance invoice #INV-1001.</li>
+          <li>Waiting on customer email approval — load #123458.</li>
         </ul>
+        <p style="margin-top:0.75rem">
+          <strong>Dashboard:</strong>
+          <a href="https://www.advancedautomations.net/innovative-carriers/" target="_blank" rel="noopener">
+            advancedautomations.net/innovative-carriers/
+          </a>
+        </p>
       </article>`;
   }
 
@@ -412,17 +420,17 @@
 
   els.connectBtn.addEventListener("click", () => {
     window.location.href =
-      `${BASE_URL}/gmailConnect?${tenantQuery}`;
+      `${BASE_URL}/mailConnect?${tenantQuery}`;
   });
 
   els.disconnectBtn.addEventListener("click", async () => {
-    if (!confirm("Disconnect Gmail? The system will stop processing emails until you reconnect.")) return;
+    if (!confirm("Disconnect Outlook? The system will stop processing emails until you reconnect.")) return;
     els.disconnectBtn.disabled = true;
     try {
-      const data = await postJson("/gmailDisconnect");
+      const data = await postJson("/mailDisconnect");
       if (data.ok) {
-        await loadGmailStatus();
-        showRunResult("Gmail disconnected.", false);
+        await loadMailStatus();
+        showRunResult("Outlook disconnected.", false);
       } else {
         showRunResult("Disconnect failed: " + (data.error || "unknown error"), true);
       }
@@ -448,7 +456,7 @@
     els.runResultBanner.hidden = true;
 
     try {
-      const data = await postJson("/checkGmailInbox");
+      const data = await postJson("/checkMailInbox");
       if (data.ok) {
         const tenantResult = Array.isArray(data.tenants) ?
           data.tenants.find((t) => t.tenantId === TENANT_ID) ||
@@ -456,10 +464,9 @@
         const processed = tenantResult ?
           (tenantResult.processed || 0) :
           (data.processedMessages || 0);
-        const connected = tenantResult ? tenantResult.connected !== false : true;
 
         if (tenantResult && tenantResult.connected === false) {
-          showRunResult("Gmail is not connected for this tenant.", true);
+          showRunResult("Outlook is not connected for this tenant.", true);
         } else {
           showRunResult(
             processed === 0 ?
@@ -628,7 +635,7 @@
     });
   }
 
-  loadGmailStatus();
+  loadMailStatus();
   setActiveRange(activeRange);
   loadInvoices();
   loadActivityFeedStatus();
