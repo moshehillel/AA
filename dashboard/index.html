@@ -68,6 +68,22 @@
 
     <p id="errorBanner" class="error-banner" hidden></p>
 
+    <section class="panel-section log-export-section">
+      <div class="panel-header">
+        <h2 class="panel-title">Activity logs</h2>
+      </div>
+      <div class="log-export-row">
+        <label class="log-export-label" for="logExportDate">Day (Eastern)</label>
+        <input type="date" id="logExportDate" class="log-export-date" />
+        <button id="exportLogsCsvBtn" class="btn btn-outline btn-sm">
+          Export CSV
+        </button>
+      </div>
+      <p class="log-export-hint">
+        Download all Jerry logs for the selected calendar day (one day at a time).
+      </p>
+    </section>
+
     <section class="panel-section">
       <div class="panel-header">
         <h2 class="panel-title">Recent Invoices</h2>

@@ -107,6 +107,36 @@ body {
   gap: 0.75rem;
 }
 
+.log-export-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1rem 1.25rem 0.35rem;
+}
+
+.log-export-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.log-export-date {
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--card-bg);
+}
+
+.log-export-hint {
+  margin: 0;
+  padding: 0 1.25rem 1rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
 .task-count-badge {
   display: inline-block;
   padding: 0.2rem 0.65rem;

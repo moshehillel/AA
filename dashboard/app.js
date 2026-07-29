@@ -39,6 +39,8 @@
     statReplied: document.getElementById("statReplied"),
     statForwarded: document.getElementById("statForwarded"),
     errorBanner: document.getElementById("errorBanner"),
+    logExportDate: document.getElementById("logExportDate"),
+    exportLogsCsvBtn: document.getElementById("exportLogsCsvBtn"),
     chartCanvas: document.getElementById("statsChart"),
     refreshInvoicesBtn: document.getElementById("refreshInvoicesBtn"),
     invoicesContainer: document.getElementById("invoicesContainer"),
@@ -73,6 +75,53 @@
     }
     els.errorBanner.hidden = false;
     els.errorBanner.textContent = message;
+  }
+
+  function todayEasternIsoDate() {
+    return new Date().toLocaleDateString("en-CA", {
+      timeZone: "America/New_York",
+    });
+  }
+
+  async function exportLogsCsvForSelectedDay() {
+    const day = els.logExportDate && els.logExportDate.value;
+    if (!day) {
+      showError("Pick a date to export.");
+      return;
+    }
+    els.exportLogsCsvBtn.disabled = true;
+    showError("");
+    try {
+      const url =
+        `${BASE_URL}/exportLogsCsv?${tenantQuery}&date=${encodeURIComponent(day)}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        let errMsg = `Export failed (${response.status})`;
+        try {
+          const errJson = await response.json();
+          if (errJson.error) errMsg = errJson.error;
+        } catch (_) {
+          /* not JSON */
+        }
+        throw new Error(errMsg);
+      }
+      const blob = await response.blob();
+      let filename = `jerry-logs-${day}.csv`;
+      const disposition = response.headers.get("Content-Disposition");
+      const match = disposition && disposition.match(/filename="([^"]+)"/);
+      if (match) filename = match[1];
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      showError(error.message || "Could not export logs.");
+      console.error("exportLogsCsvForSelectedDay failed:", error);
+    } finally {
+      els.exportLogsCsvBtn.disabled = false;
+    }
   }
 
   async function fetchJson(path) {
@@ -396,6 +445,13 @@
   });
 
   els.refreshInvoicesBtn.addEventListener("click", loadInvoices);
+
+  if (els.logExportDate) {
+    els.logExportDate.value = todayEasternIsoDate();
+  }
+  if (els.exportLogsCsvBtn) {
+    els.exportLogsCsvBtn.addEventListener("click", exportLogsCsvForSelectedDay);
+  }
 
   // ---- Support chat ----
 
