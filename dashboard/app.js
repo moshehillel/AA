@@ -41,8 +41,6 @@
     statForwarded: document.getElementById("statForwarded"),
     errorBanner: document.getElementById("errorBanner"),
     chartCanvas: document.getElementById("statsChart"),
-    refreshLogsBtn: document.getElementById("refreshLogsBtn"),
-    showMoreLogsBtn: document.getElementById("showMoreLogsBtn"),
     logsContainer: document.getElementById("logsContainer"),
     refreshInvoicesBtn: document.getElementById("refreshInvoicesBtn"),
     invoicesContainer: document.getElementById("invoicesContainer"),
@@ -52,11 +50,8 @@
 
   let chart = null;
   let activeRange = "week";
-  let logOffset = 0;
-  let logHasMore = false;
   let openTaskCount = 0;
   let statsTotals = null;
-  const LOG_PAGE = 20;
 
   // TMS badge + tenant label
   if (els.tmsBadge) {
@@ -147,54 +142,6 @@
     return "status-neutral";
   }
 
-  function summaryStatusClass(status) {
-    const s = String(status || "").toLowerCase();
-    if (s.includes("complete") || s === "approved") return "status-completed";
-    if (s.includes("fail") || s.includes("error")) return "status-attention";
-    return "status-running";
-  }
-
-  function taskTypeLabel(type) {
-    return String(type || "task").replace(/_/g, " ");
-  }
-
-  function renderSummaries(summaries, append) {
-    if (!summaries || summaries.length === 0) {
-      if (!append) {
-        els.logsContainer.innerHTML =
-          '<p class="logs-empty">No summarized activity yet. Flows appear ' +
-          "here after they complete.</p>";
-      }
-      return;
-    }
-
-    const html = summaries.map((s) => {
-      const status = s.finalStatus || "—";
-      const body = s.aiSummary || s.failureReason || s.lastStep || "No summary";
-      const fix = s.recommendedFix ?
-        `<p class="summary-fix"><strong>Suggested fix:</strong> ${bodyEsc(s.recommendedFix)}</p>` :
-        "";
-      return `<article class="summary-card">
-        <div class="summary-meta">
-          <span class="log-time">${formatLogTime(s.createdAt)}</span>
-          ${s.invoiceId ? `<span class="log-category">Invoice ${bodyEsc(s.invoiceId)}</span>` : ""}
-          <span class="status-pill ${summaryStatusClass(status)}">${bodyEsc(status)}</span>
-        </div>
-        <p class="summary-body">${bodyEsc(body)}</p>
-        ${fix}
-      </article>`;
-    }).join("");
-
-    if (append) {
-      els.logsContainer.insertAdjacentHTML("beforeend", html);
-    } else {
-      els.logsContainer.innerHTML = html;
-    }
-    if (els.showMoreLogsBtn) {
-      els.showMoreLogsBtn.hidden = !logHasMore;
-    }
-  }
-
   function bodyEsc(text) {
     return String(text ?? "")
       .replace(/&/g, "&amp;")
@@ -203,37 +150,46 @@
       .replace(/"/g, "&quot;");
   }
 
-  async function loadSummaries(append) {
-    if (!append) {
-      els.refreshLogsBtn.disabled = true;
-    } else if (els.showMoreLogsBtn) {
-      els.showMoreLogsBtn.disabled = true;
-    }
+  function renderDailyDigestPanel(apiMessage) {
+    const note = apiMessage ?
+      `<p>${bodyEsc(apiMessage)}</p>` : "";
+    els.logsContainer.innerHTML =
+      `<article class="logs-digest-card">
+        ${note}
+        <p>
+          Instead of a live log here, OpenAI reads Jerry&apos;s last 24 hours
+          of activity and emails Lisa a short bullet list every day at
+          <strong>6:00 PM Eastern</strong>.
+        </p>
+        <p>Examples of what the email includes:</p>
+        <ul class="logs-digest-examples">
+          <li>Processed carrier invoice for load 265376 (Forward Air).</li>
+          <li>Emailed POD follow-up to customer.</li>
+          <li>Ignored 3 past-due invoice re-sends.</li>
+          <li>Processed insurance invoice #INV-12345.</li>
+          <li>Waiting on customer email approval for 2 loads.</li>
+        </ul>
+      </article>`;
+  }
+
+  async function loadActivityFeedStatus() {
     try {
-      const offset = append ? logOffset : 0;
-      const data = await fetchJson(
-          `/getRecentSummaries?limit=${LOG_PAGE}&offset=${offset}`,
+      const data = await fetchJson("/getRecentSummaries?limit=1");
+      if (data.activityFeedEnabled === false) {
+        renderDailyDigestPanel(data.message);
+        return;
+      }
+      renderDailyDigestPanel(
+          "Live activity feed is off. Check Lisa's daily email.",
       );
-      if (!append) {
-        logOffset = 0;
-      }
-      const summaries = data.summaries || [];
-      logOffset += summaries.length;
-      logHasMore = !!data.hasMore;
-      renderSummaries(summaries, append);
     } catch (error) {
-      if (!append) {
-        els.logsContainer.innerHTML =
-          '<p class="logs-empty">Could not load summarized logs. ' +
-          "Deploy getRecentSummaries to enable this view.</p>";
-      }
-      console.error("loadSummaries failed:", error);
-    } finally {
-      els.refreshLogsBtn.disabled = false;
-      if (els.showMoreLogsBtn) {
-        els.showMoreLogsBtn.disabled = false;
-      }
+      renderDailyDigestPanel(null);
+      console.error("loadActivityFeedStatus failed:", error);
     }
+  }
+
+  function taskTypeLabel(type) {
+    return String(type || "task").replace(/_/g, " ");
   }
 
   function renderTasks(tasks) {
@@ -477,10 +433,6 @@
     }
   });
 
-  els.refreshLogsBtn.addEventListener("click", () => loadSummaries(false));
-  if (els.showMoreLogsBtn) {
-    els.showMoreLogsBtn.addEventListener("click", () => loadSummaries(true));
-  }
   els.refreshInvoicesBtn.addEventListener("click", loadInvoices);
 
   function showRunResult(message, isError) {
@@ -518,7 +470,6 @@
         }
         loadStats(activeRange);
         loadInvoices();
-        loadSummaries(false);
         loadTasks();
       } else {
         showRunResult(
@@ -680,6 +631,6 @@
   loadGmailStatus();
   setActiveRange(activeRange);
   loadInvoices();
-  loadSummaries(false);
+  loadActivityFeedStatus();
   loadTasks();
 })();
