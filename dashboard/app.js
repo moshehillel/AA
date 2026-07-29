@@ -100,7 +100,7 @@
 
   async function loadMailStatus() {
     try {
-      const data = await fetchJson("/getMailStatus");
+      const data = await fetchJson("/getGmailStatus");
       const provider =
         data.provider === "gmail" ? "Gmail" : "Outlook";
       if (data.connected) {
