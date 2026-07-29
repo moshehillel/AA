@@ -31,7 +31,6 @@
     badge: document.getElementById("gmailStatusBadge"),
     connectBtn: document.getElementById("connectGmailBtn"),
     disconnectBtn: document.getElementById("disconnectGmailBtn"),
-    runEmailCheckBtn: document.getElementById("runEmailCheckBtn"),
     runResultBanner: document.getElementById("runResultBanner"),
     rangeBtns: Array.from(document.querySelectorAll(".range-btn")),
     statInvoices: document.getElementById("statInvoices"),
@@ -41,7 +40,6 @@
     statForwarded: document.getElementById("statForwarded"),
     errorBanner: document.getElementById("errorBanner"),
     chartCanvas: document.getElementById("statsChart"),
-    logsContainer: document.getElementById("logsContainer"),
     refreshInvoicesBtn: document.getElementById("refreshInvoicesBtn"),
     invoicesContainer: document.getElementById("invoicesContainer"),
     tasksContainer: document.getElementById("tasksContainer"),
@@ -150,50 +148,6 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
-  }
-
-  function renderDailyDigestPanel(apiMessage) {
-    const note = apiMessage ?
-      `<p>${bodyEsc(apiMessage)}</p>` : "";
-    els.logsContainer.innerHTML =
-      `<article class="logs-digest-card">
-        ${note}
-        <p>
-          Instead of a live log here, OpenAI reads Jerry&apos;s last 24 hours
-          of activity and emails Lisa a short bullet list every day at
-          <strong>6:00 PM Eastern</strong>.
-        </p>
-        <p>Examples of what the email includes (sample format only):</p>
-        <ul class="logs-digest-examples">
-          <li>Invoiced load #123456 (Example Carrier) — $1,250.00, Primus #98765.</li>
-          <li>Emailed POD follow-up — load #123461.</li>
-          <li>Ignored past-due re-send — load #123400.</li>
-          <li>Processed insurance invoice #INV-1001.</li>
-          <li>Waiting on customer email approval — load #123458.</li>
-        </ul>
-        <p style="margin-top:0.75rem">
-          <strong>Dashboard:</strong>
-          <a href="https://www.advancedautomations.net/innovative-carriers/" target="_blank" rel="noopener">
-            advancedautomations.net/innovative-carriers/
-          </a>
-        </p>
-      </article>`;
-  }
-
-  async function loadActivityFeedStatus() {
-    try {
-      const data = await fetchJson("/getRecentSummaries?limit=1");
-      if (data.activityFeedEnabled === false) {
-        renderDailyDigestPanel(data.message);
-        return;
-      }
-      renderDailyDigestPanel(
-          "Live activity feed is off. Check Lisa's daily email.",
-      );
-    } catch (error) {
-      renderDailyDigestPanel(null);
-      console.error("loadActivityFeedStatus failed:", error);
-    }
   }
 
   function taskTypeLabel(type) {
@@ -443,56 +397,6 @@
 
   els.refreshInvoicesBtn.addEventListener("click", loadInvoices);
 
-  function showRunResult(message, isError) {
-    els.runResultBanner.textContent = message;
-    els.runResultBanner.className =
-      "run-result-banner " + (isError ? "is-error" : "is-success");
-    els.runResultBanner.hidden = false;
-  }
-
-  els.runEmailCheckBtn.addEventListener("click", async () => {
-    els.runEmailCheckBtn.disabled = true;
-    els.runEmailCheckBtn.textContent = "Checking…";
-    els.runResultBanner.hidden = true;
-
-    try {
-      const data = await postJson("/checkMailInbox");
-      if (data.ok) {
-        const tenantResult = Array.isArray(data.tenants) ?
-          data.tenants.find((t) => t.tenantId === TENANT_ID) ||
-          data.tenants[0] : null;
-        const processed = tenantResult ?
-          (tenantResult.processed || 0) :
-          (data.processedMessages || 0);
-
-        if (tenantResult && tenantResult.connected === false) {
-          showRunResult("Outlook is not connected for this tenant.", true);
-        } else {
-          showRunResult(
-            processed === 0 ?
-              "Inbox checked — no new emails to process." :
-              `Done — queued ${processed} email${processed === 1 ? "" : "s"}.`,
-            false,
-          );
-        }
-        loadStats(activeRange);
-        loadInvoices();
-        loadTasks();
-      } else {
-        showRunResult(
-          "Check failed: " + (data.error || "unknown error"),
-          true,
-        );
-      }
-    } catch (error) {
-      showRunResult("Could not reach the server. Please try again.", true);
-      console.error("runEmailCheck failed:", error);
-    } finally {
-      els.runEmailCheckBtn.disabled = false;
-      els.runEmailCheckBtn.textContent = "Check Inbox";
-    }
-  });
-
   // ---- Support chat ----
 
   const chatEls = {
@@ -638,6 +542,5 @@
   loadMailStatus();
   setActiveRange(activeRange);
   loadInvoices();
-  loadActivityFeedStatus();
   loadTasks();
 })();
