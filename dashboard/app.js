@@ -29,6 +29,7 @@
     tenantLabel: document.getElementById("tenantLabel"),
     taiHintBanner: document.getElementById("taiHintBanner"),
     badge: document.getElementById("gmailStatusBadge"),
+    connectedMailbox: document.getElementById("connectedMailboxLabel"),
     connectBtn: document.getElementById("connectGmailBtn"),
     disconnectBtn: document.getElementById("disconnectGmailBtn"),
     runResultBanner: document.getElementById("runResultBanner"),
@@ -51,6 +52,7 @@
   let chart = null;
   let activeRange = "week";
   let openTaskCount = 0;
+  let connectedMailboxEmail = null;
   let statsTotals = null;
 
   // TMS badge + tenant label
@@ -147,23 +149,46 @@
 
   async function loadMailStatus() {
     try {
-      const data = await fetchJson("/getGmailStatus");
+      const data = await fetchJson("/getMailStatus");
       const provider =
         data.provider === "gmail" ? "Gmail" : "Outlook";
+      connectedMailboxEmail = data.connectedEmail || null;
       if (data.connected) {
         els.badge.textContent = `${provider} connected`;
         els.badge.className = "badge badge-connected";
         els.connectBtn.textContent = `Reconnect ${provider}`;
         els.disconnectBtn.hidden = false;
+        if (els.connectedMailbox && connectedMailboxEmail) {
+          const name = data.connectedDisplayName ?
+            `${data.connectedDisplayName} · ` : "";
+          els.connectedMailbox.textContent =
+            `${name}${connectedMailboxEmail}`;
+          els.connectedMailbox.hidden = false;
+          els.connectedMailbox.title =
+            "Jerry is reading unread mail from this inbox";
+        } else if (els.connectedMailbox) {
+          els.connectedMailbox.hidden = true;
+          els.connectedMailbox.textContent = "";
+        }
       } else {
         els.badge.textContent = `${provider} not connected`;
         els.badge.className = "badge badge-disconnected";
         els.connectBtn.textContent = `Connect ${provider}`;
         els.disconnectBtn.hidden = true;
+        connectedMailboxEmail = null;
+        if (els.connectedMailbox) {
+          els.connectedMailbox.hidden = true;
+          els.connectedMailbox.textContent = "";
+        }
       }
     } catch (error) {
       els.badge.textContent = "Status unavailable";
       els.badge.className = "badge badge-unknown";
+      connectedMailboxEmail = null;
+      if (els.connectedMailbox) {
+        els.connectedMailbox.hidden = true;
+        els.connectedMailbox.textContent = "";
+      }
       console.error("loadMailStatus failed:", error);
     }
   }
@@ -526,6 +551,7 @@
           messages: chatHistory,
           dashboardContext: {
             gmailConnected: els.badge.classList.contains("badge-connected"),
+            connectedMailboxEmail,
             timeRange: activeRange,
             statsTotals,
             openTaskCount,
