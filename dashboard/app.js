@@ -45,6 +45,8 @@
     chartCanvas: document.getElementById("statsChart"),
     refreshInvoicesBtn: document.getElementById("refreshInvoicesBtn"),
     invoicesContainer: document.getElementById("invoicesContainer"),
+    invoicesLoadMoreWrap: document.getElementById("invoicesLoadMoreWrap"),
+    loadMoreInvoicesBtn: document.getElementById("loadMoreInvoicesBtn"),
     tasksContainer: document.getElementById("tasksContainer"),
     taskCountBadge: document.getElementById("taskCountBadge"),
   };
@@ -54,6 +56,9 @@
   let openTaskCount = 0;
   let connectedMailboxEmail = null;
   let statsTotals = null;
+  const INVOICE_PAGE_SIZE = 20;
+  let invoiceOffset = 0;
+  let invoiceHasMore = false;
 
   // TMS badge + tenant label
   if (els.tmsBadge) {
@@ -298,29 +303,47 @@
     }
   }
 
+  function buildInvoiceRow(inv) {
+    const status = inv.finalWorkflowStatus || inv.decisionStage || "—";
+    const taiCol = TMS === "tai" ?
+      `<td>${inv.taiShipmentId || "—"}</td>` : "";
+    return `<tr>
+      <td class="log-time">${formatLogTime(inv.createdAt)}</td>
+      <td>${inv.loadNumber || "—"}</td>
+      <td>${inv.proNumber || "—"}</td>
+      <td>${inv.carrierName || "—"}</td>
+      <td>${formatMoney(inv.invoiceAmount)}</td>
+      ${taiCol}
+      <td><span class="status-pill ${statusClass(status)}">${status}</span></td>
+      <td class="log-message">${inv.decisionReason || inv.currentStep || "—"}</td>
+    </tr>`;
+  }
+
+  function updateLoadMoreButton(loading) {
+    if (!els.invoicesLoadMoreWrap || !els.loadMoreInvoicesBtn) {
+      return;
+    }
+    if (!invoiceHasMore) {
+      els.invoicesLoadMoreWrap.hidden = true;
+      els.loadMoreInvoicesBtn.disabled = false;
+      els.loadMoreInvoicesBtn.textContent = "Load more";
+      return;
+    }
+    els.invoicesLoadMoreWrap.hidden = false;
+    els.loadMoreInvoicesBtn.disabled = Boolean(loading);
+    els.loadMoreInvoicesBtn.textContent = loading ? "Loading…" : "Load more";
+  }
+
   function renderInvoices(invoices) {
     if (!invoices || invoices.length === 0) {
       els.invoicesContainer.innerHTML =
         '<p class="panel-empty">No invoices yet.</p>';
+      updateLoadMoreButton(false);
       return;
     }
 
     const taiHeader = TMS === "tai" ? "<th>TAI Shipment</th>" : "";
-    const rows = invoices.map((inv) => {
-      const status = inv.finalWorkflowStatus || inv.decisionStage || "—";
-      const taiCol = TMS === "tai" ?
-        `<td>${inv.taiShipmentId || "—"}</td>` : "";
-      return `<tr>
-        <td class="log-time">${formatLogTime(inv.createdAt)}</td>
-        <td>${inv.loadNumber || "—"}</td>
-        <td>${inv.proNumber || "—"}</td>
-        <td>${inv.carrierName || "—"}</td>
-        <td>${formatMoney(inv.invoiceAmount)}</td>
-        ${taiCol}
-        <td><span class="status-pill ${statusClass(status)}">${status}</span></td>
-        <td class="log-message">${inv.decisionReason || inv.currentStep || "—"}</td>
-      </tr>`;
-    }).join("");
+    const rows = invoices.map(buildInvoiceRow).join("");
 
     els.invoicesContainer.innerHTML =
       `<table class="logs-table">
@@ -330,20 +353,66 @@
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
+    updateLoadMoreButton(false);
   }
 
-  async function loadInvoices() {
-    els.refreshInvoicesBtn.disabled = true;
+  function appendInvoices(invoices) {
+    if (!invoices || invoices.length === 0) {
+      updateLoadMoreButton(false);
+      return;
+    }
+    const tbody = els.invoicesContainer.querySelector("tbody");
+    if (!tbody) {
+      renderInvoices(invoices);
+      return;
+    }
+    tbody.insertAdjacentHTML("beforeend", invoices.map(buildInvoiceRow).join(""));
+    updateLoadMoreButton(false);
+  }
+
+  async function loadInvoices({reset = true} = {}) {
+    if (reset) {
+      invoiceOffset = 0;
+      invoiceHasMore = false;
+      els.refreshInvoicesBtn.disabled = true;
+      updateLoadMoreButton(false);
+    } else if (els.loadMoreInvoicesBtn) {
+      updateLoadMoreButton(true);
+    }
+
     try {
-      const data = await fetchJson("/getRecentInvoices?limit=20");
-      renderInvoices(data.invoices || []);
+      const data = await fetchJson(
+          `/getRecentInvoices?limit=${INVOICE_PAGE_SIZE}&offset=${invoiceOffset}`,
+      );
+      const invoices = data.invoices || [];
+      invoiceHasMore = data.hasMore === true;
+      invoiceOffset += invoices.length;
+
+      if (reset) {
+        renderInvoices(invoices);
+      } else {
+        appendInvoices(invoices);
+      }
     } catch (error) {
-      els.invoicesContainer.innerHTML =
-        '<p class="panel-empty">Could not load invoices.</p>';
+      if (reset) {
+        els.invoicesContainer.innerHTML =
+          '<p class="panel-empty">Could not load invoices.</p>';
+        invoiceHasMore = false;
+      } else {
+        showError("Could not load more invoices. Please try again.");
+      }
       console.error("loadInvoices failed:", error);
+      updateLoadMoreButton(false);
     } finally {
       els.refreshInvoicesBtn.disabled = false;
     }
+  }
+
+  async function loadMoreInvoices() {
+    if (!invoiceHasMore || els.loadMoreInvoicesBtn.disabled) {
+      return;
+    }
+    await loadInvoices({reset: false});
   }
 
   function formatPeriodLabel(period, range) {
@@ -469,7 +538,10 @@
     }
   });
 
-  els.refreshInvoicesBtn.addEventListener("click", loadInvoices);
+  els.refreshInvoicesBtn.addEventListener("click", () => loadInvoices({reset: true}));
+  if (els.loadMoreInvoicesBtn) {
+    els.loadMoreInvoicesBtn.addEventListener("click", loadMoreInvoices);
+  }
 
   if (els.logExportDate) {
     els.logExportDate.value = todayEasternIsoDate();
@@ -623,6 +695,6 @@
 
   loadMailStatus();
   setActiveRange(activeRange);
-  loadInvoices();
+  loadInvoices({reset: true});
   loadTasks();
 })();
