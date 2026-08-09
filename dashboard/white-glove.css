@@ -1,0 +1,74 @@
+.wg-mfa-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+
+.wg-mfa-lead {
+  margin: 0 0 1rem;
+  color: #4b5563;
+  max-width: 42rem;
+}
+
+.wg-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 1rem;
+  margin: 0 0 1.25rem;
+}
+
+.wg-status-grid dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.wg-status-grid dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.wg-mfa-actions {
+  margin-bottom: 1rem;
+}
+
+.wg-mfa-form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.wg-otp-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.wg-otp-input {
+  font-size: 1.25rem;
+  letter-spacing: 0.15em;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  width: 10rem;
+}
+
+.wg-reminder {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+}
+
+.wg-links {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.wg-links li {
+  margin-bottom: 0.5rem;
+}

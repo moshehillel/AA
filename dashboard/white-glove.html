@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>White Glove — Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="white-glove.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-brand">
+      <h1 id="dashboardTitle">White Glove Dashboard</h1>
+      <div class="topbar-meta">
+        <span class="tenant-label">ProviderSoft → HHA pipeline</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="dashboardMain">
+    <p id="mfaReminderBanner" class="info-banner wg-reminder" hidden>
+      MFA device trust expires soon — renew below so Tuesday session runs keep working.
+    </p>
+    <p id="errorBanner" class="error-banner" hidden></p>
+    <p id="successBanner" class="run-result-banner" hidden></p>
+
+    <section class="panel-section">
+      <div class="panel-header">
+        <h2 class="panel-title">HHA MFA (monthly renew)</h2>
+      </div>
+      <div class="wg-mfa-card">
+        <p class="wg-mfa-lead">
+          HHA sends a one-time code to the phone on file. Click renew, enter the SMS code,
+          and the system saves a new ~30-day trust cookie in AWS (no code stored in the app).
+        </p>
+        <dl class="wg-status-grid" id="mfaStatusGrid">
+          <div><dt>Last renewed</dt><dd id="mfaRenewedAt">—</dd></div>
+          <div><dt>Expires</dt><dd id="mfaExpiresAt">—</dd></div>
+          <div><dt>Days left</dt><dd id="mfaDaysLeft">—</dd></div>
+        </dl>
+        <div class="wg-mfa-actions">
+          <button id="mfaStartBtn" class="btn">Renew MFA (send SMS)</button>
+        </div>
+        <form id="mfaCompleteForm" class="wg-mfa-form" hidden>
+          <label for="mfaOtpInput">Enter verification code from SMS</label>
+          <div class="wg-otp-row">
+            <input id="mfaOtpInput" class="wg-otp-input" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="123456" />
+            <button type="submit" class="btn">Submit code</button>
+            <button type="button" id="mfaCancelBtn" class="btn btn-outline">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel-section">
+      <div class="panel-header">
+        <h2 class="panel-title">Pipeline &amp; logs</h2>
+      </div>
+      <ul class="wg-links">
+        <li><a id="pipelineConsoleLink" href="#" target="_blank" rel="noopener">Open AWS Step Functions (manual runs)</a></li>
+        <li><a id="sandboxLink" href="#" target="_blank" rel="noopener" hidden>Run sandbox dry-run (email summary)</a></li>
+      </ul>
+      <p class="log-export-hint">
+        Nightly alerts and dry-run summaries are emailed to the configured subscribers.
+        Use sandbox for a full preview without HHA writes.
+      </p>
+    </section>
+  </main>
+
+  <script src="clients.js"></script>
+  <script src="white-glove.js"></script>
+</body>
+</html>

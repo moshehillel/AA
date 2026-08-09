@@ -9,7 +9,7 @@ import type { Context } from "https://edge.netlify.com";
 // Environment variables, hyphens in the slug become underscores, e.g.
 // CLIENT_INNOVATIVE_CARRIERS_PASSWORD) or the dashboard responds with 503
 // until one is set.
-const CLIENT_SLUGS = ["innovative-carriers", "ctc"];
+const CLIENT_SLUGS = ["innovative-carriers", "ctc", "white-glove"];
 
 export default async (request: Request, context: Context) => {
   const url = new URL(request.url);
@@ -55,7 +55,8 @@ export default async (request: Request, context: Context) => {
   }
 
   const rest = segments.slice(1).join("/");
-  return context.rewrite(rest ? `/dashboard/${rest}` : "/dashboard/index.html");
+  const indexPage = slug === "white-glove" ? "white-glove.html" : "index.html";
+  return context.rewrite(rest ? `/dashboard/${rest}` : `/dashboard/${indexPage}`);
 };
 
 function isAuthorized(header: string | null, expectedPassword: string): boolean {

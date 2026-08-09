@@ -30,4 +30,10 @@ window.CLIENTS = {
     tenantId: "ctc",
     tms: "tai",
   },
+  "white-glove": {
+    name: "White Glove",
+    dashboardType: "white-glove",
+    functionsBaseUrl: "/.netlify/functions/whiteGloveProxy",
+    sandboxUrl: "",
+  },
 };
