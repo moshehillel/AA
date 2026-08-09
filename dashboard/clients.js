@@ -34,6 +34,5 @@ window.CLIENTS = {
     name: "White Glove",
     dashboardType: "white-glove",
     functionsBaseUrl: "/.netlify/functions/whiteGloveProxy",
-    sandboxUrl: "",
   },
 };

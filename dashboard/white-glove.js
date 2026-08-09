@@ -11,7 +11,7 @@
   if (!client || client.dashboardType !== "white-glove") {
     document.getElementById("dashboardTitle").textContent = "Dashboard not found";
     document.getElementById("dashboardMain").innerHTML =
-      '<p class="error-banner">White Glove dashboard is not configured for this address.</p>';
+      '<p class="wg-banner wg-banner-error">White Glove dashboard is not configured for this address.</p>';
     return;
   }
 
@@ -21,6 +21,9 @@
     errorBanner: document.getElementById("errorBanner"),
     successBanner: document.getElementById("successBanner"),
     reminderBanner: document.getElementById("mfaReminderBanner"),
+    headerStatusPill: document.getElementById("headerStatusPill"),
+    headerStatusText: document.getElementById("headerStatusText"),
+    daysLeftCard: document.getElementById("daysLeftCard"),
     renewedAt: document.getElementById("mfaRenewedAt"),
     expiresAt: document.getElementById("mfaExpiresAt"),
     daysLeft: document.getElementById("mfaDaysLeft"),
@@ -29,7 +32,8 @@
     otpInput: document.getElementById("mfaOtpInput"),
     cancelBtn: document.getElementById("mfaCancelBtn"),
     pipelineLink: document.getElementById("pipelineConsoleLink"),
-    sandboxLink: document.getElementById("sandboxLink"),
+    sandboxRunBtn: document.getElementById("sandboxRunBtn"),
+    sandboxResult: document.getElementById("sandboxResult"),
   };
 
   let pendingSessionId = null;
@@ -68,24 +72,64 @@
     return data;
   }
 
+  function setHeaderStatus(daysRemaining, needsReminder) {
+    if (!els.headerStatusPill || !els.headerStatusText) return;
+    els.headerStatusPill.hidden = false;
+    els.headerStatusPill.classList.remove(
+      "wg-status-pill-good",
+      "wg-status-pill-warn",
+      "wg-status-pill-bad",
+      "wg-status-pill-neutral",
+    );
+
+    if (daysRemaining == null) {
+      els.headerStatusPill.classList.add("wg-status-pill-neutral");
+      els.headerStatusText.textContent = "MFA status unknown";
+      return;
+    }
+
+    if (daysRemaining <= 0) {
+      els.headerStatusPill.classList.add("wg-status-pill-bad");
+      els.headerStatusText.textContent = "MFA expired — renew now";
+    } else if (needsReminder || daysRemaining <= 7) {
+      els.headerStatusPill.classList.add("wg-status-pill-warn");
+      els.headerStatusText.textContent = `${daysRemaining} day${daysRemaining === 1 ? "" : "s"} of MFA trust left`;
+    } else {
+      els.headerStatusPill.classList.add("wg-status-pill-good");
+      els.headerStatusText.textContent = `MFA healthy — ${daysRemaining} days left`;
+    }
+  }
+
+  function setDaysLeftStyle(daysRemaining, needsReminder) {
+    if (!els.daysLeftCard) return;
+    els.daysLeftCard.classList.remove("wg-stat-warn", "wg-stat-bad");
+    if (daysRemaining == null) return;
+    if (daysRemaining <= 0) {
+      els.daysLeftCard.classList.add("wg-stat-bad");
+    } else if (needsReminder || daysRemaining <= 7) {
+      els.daysLeftCard.classList.add("wg-stat-warn");
+    }
+  }
+
   function renderStatus(data) {
     els.renewedAt.textContent = formatDate(data.renewedAt);
     els.expiresAt.textContent = formatDate(data.expiresAt);
     els.daysLeft.textContent =
       data.daysRemaining == null ? "—" : String(data.daysRemaining);
 
-    if (data.needsReminder) {
-      els.reminderBanner.hidden = false;
-    } else {
-      els.reminderBanner.hidden = true;
-    }
+    els.reminderBanner.hidden = !data.needsReminder;
+    setHeaderStatus(data.daysRemaining, data.needsReminder);
+    setDaysLeftStyle(data.daysRemaining, data.needsReminder);
 
     if (data.pipelineConsoleUrl && els.pipelineLink) {
       els.pipelineLink.href = data.pipelineConsoleUrl;
     }
-    if (data.sandboxTriggerConfigured && client.sandboxUrl && els.sandboxLink) {
-      els.sandboxLink.href = client.sandboxUrl;
-      els.sandboxLink.hidden = false;
+
+    if (els.sandboxRunBtn) {
+      els.sandboxRunBtn.disabled = !data.sandboxTriggerConfigured;
+      if (!data.sandboxTriggerConfigured) {
+        els.sandboxRunBtn.title = "Sandbox trigger is not configured on AWS yet.";
+      }
     }
   }
 
@@ -134,7 +178,8 @@
     if (!otp) return;
 
     showError("");
-    els.completeForm.querySelector('[type="submit"]').disabled = true;
+    const submitBtn = els.completeForm.querySelector('[type="submit"]');
+    submitBtn.disabled = true;
     try {
       const data = await api("complete", {
         method: "POST",
@@ -148,9 +193,43 @@
     } catch (err) {
       showError(err.message || "Could not complete MFA renew.");
     } finally {
-      els.completeForm.querySelector('[type="submit"]').disabled = false;
+      submitBtn.disabled = false;
     }
   });
+
+  if (els.sandboxRunBtn) {
+    els.sandboxRunBtn.addEventListener("click", async function () {
+      showError("");
+      showSuccess("");
+      if (els.sandboxResult) {
+        els.sandboxResult.hidden = true;
+        els.sandboxResult.textContent = "";
+      }
+
+      els.sandboxRunBtn.disabled = true;
+      const originalLabel = els.sandboxRunBtn.innerHTML;
+      els.sandboxRunBtn.innerHTML =
+        '<span class="wg-btn-icon" aria-hidden="true">…</span> Starting sandbox run…';
+
+      try {
+        const data = await api("sandbox", {method: "POST"});
+        if (els.sandboxResult) {
+          els.sandboxResult.hidden = false;
+          const runLine = data.runId
+            ? `Run ID: <code>${data.runId}</code>. `
+            : "";
+          els.sandboxResult.innerHTML =
+            `${runLine}${data.message || "Sandbox started — check your email for the summary."}`;
+        }
+        showSuccess("Sandbox run started. You'll receive an email when it finishes.");
+      } catch (err) {
+        showError(err.message || "Could not start sandbox run.");
+      } finally {
+        els.sandboxRunBtn.disabled = false;
+        els.sandboxRunBtn.innerHTML = originalLabel;
+      }
+    });
+  }
 
   loadStatus();
 })();
