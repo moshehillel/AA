@@ -9,151 +9,133 @@
       --primary: #1f4fd8;
       --primary-dark: #153a9e;
       --primary-light: #eef2ff;
-      --bg: #f5f7fb;
+      --bg: #f0f4fa;
       --card: #ffffff;
       --text: #1f2937;
       --muted: #6b7280;
-      --border: #e5e7eb;
+      --border: #e2e8f0;
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
       line-height: 1.6;
+      min-height: 100vh;
     }
 
     .hero {
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      background: linear-gradient(145deg, var(--primary) 0%, var(--primary-dark) 100%);
       color: white;
-      padding: 44px 20px 40px;
+      padding: 48px 24px 44px;
       text-align: center;
     }
 
+    .hero-badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 999px;
+      padding: 6px 14px;
+      margin-bottom: 16px;
+    }
+
     .hero h1 {
-      margin: 0 0 10px;
-      font-size: clamp(26px, 5vw, 36px);
+      margin: 0 0 12px;
+      font-size: clamp(26px, 5vw, 34px);
+      font-weight: 700;
       line-height: 1.2;
+      letter-spacing: -0.02em;
     }
 
     .hero p {
-      max-width: 620px;
+      max-width: 540px;
       margin: 0 auto;
       font-size: clamp(15px, 2.5vw, 17px);
-      opacity: 0.95;
+      opacity: 0.92;
+      line-height: 1.55;
     }
 
     .container {
-      max-width: 1100px;
+      max-width: 920px;
       margin: 0 auto;
-      padding: 28px 16px 48px;
+      padding: 32px 20px 56px;
     }
 
     .quote-hub {
       background: var(--card);
       border-radius: 20px;
-      padding: clamp(20px, 4vw, 28px);
+      padding: clamp(24px, 4vw, 32px);
       border: 1px solid var(--border);
-      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 4px 6px rgba(15, 23, 42, 0.04), 0 20px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    .quote-hub-header {
+      text-align: center;
+      margin-bottom: 28px;
     }
 
     .quote-hub h2 {
-      margin: 0 0 8px;
+      margin: 0 0 10px;
       color: var(--primary-dark);
       font-size: clamp(22px, 4vw, 26px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
     }
 
     .quote-hub > .intro {
       color: var(--muted);
-      margin: 0 0 22px;
-      max-width: 720px;
+      margin: 0 auto;
+      max-width: 560px;
+      font-size: 15px;
+      line-height: 1.55;
     }
 
     .steps {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-      margin-bottom: 24px;
+      gap: 12px;
+      margin-bottom: 28px;
     }
 
     .step {
       background: var(--primary-light);
       border: 1px solid #c7d2fe;
-      border-radius: 14px;
+      border-radius: 12px;
       padding: 16px 14px;
+      text-align: center;
     }
 
     .step-num {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 28px;
-      height: 28px;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
       background: var(--primary);
       color: white;
-      font-size: 13px;
-      font-weight: bold;
+      font-size: 12px;
+      font-weight: 700;
       margin-bottom: 8px;
     }
 
     .step h3 {
-      margin: 0 0 6px;
-      font-size: 15px;
+      margin: 0 0 4px;
+      font-size: 14px;
+      font-weight: 600;
       color: var(--primary-dark);
     }
 
     .step p {
       margin: 0;
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.45;
-    }
-
-    .quote-hub-grid {
-      display: grid;
-      grid-template-columns: 240px 1fr;
-      gap: 20px;
-      align-items: start;
-    }
-
-    .quote-dispatchers {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px;
-    }
-
-    .quote-dispatchers h3 {
-      margin: 0 0 12px;
-      font-size: 15px;
-      color: var(--primary-dark);
-    }
-
-    .dispatcher-row {
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 14px;
-    }
-
-    .dispatcher-row:last-of-type { border-bottom: none; }
-
-    .dispatcher-row strong {
-      display: block;
-      color: var(--text);
-    }
-
-    .dispatcher-row span {
-      color: var(--muted);
-      font-size: 12px;
-      word-break: break-all;
-    }
-
-    .quote-note {
-      margin: 14px 0 0;
       font-size: 12px;
       color: var(--muted);
       line-height: 1.45;
@@ -165,6 +147,7 @@
       overflow: hidden;
       background: #0f1419;
       min-height: 720px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
     }
 
     .quote-frame-wrap iframe {
@@ -177,8 +160,9 @@
     .quote-hub-actions {
       display: flex;
       flex-wrap: wrap;
+      justify-content: center;
       gap: 10px;
-      margin-top: 14px;
+      margin-top: 18px;
     }
 
     .quote-btn {
@@ -186,14 +170,18 @@
       background: var(--primary);
       color: white;
       text-decoration: none;
-      padding: 11px 16px;
+      padding: 11px 18px;
       border-radius: 10px;
       font-size: 14px;
-      font-weight: bold;
+      font-weight: 600;
       text-align: center;
+      transition: filter 0.15s ease, transform 0.15s ease;
     }
 
-    .quote-btn:hover { filter: brightness(1.05); }
+    .quote-btn:hover {
+      filter: brightness(1.06);
+      transform: translateY(-1px);
+    }
 
     .quote-btn.secondary {
       background: white;
@@ -201,20 +189,23 @@
       border: 1px solid #c7d2fe;
     }
 
+    .quote-btn.secondary:hover {
+      background: var(--primary-light);
+    }
+
     .page-footer {
       text-align: center;
-      padding: 0 16px 32px;
+      padding: 0 16px 36px;
       font-size: 13px;
       color: var(--muted);
     }
 
-    @media (max-width: 860px) {
+    @media (max-width: 720px) {
       .steps { grid-template-columns: 1fr; }
-      .quote-hub-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 540px) {
-      .hero { padding: 32px 16px 28px; }
+      .hero { padding: 36px 16px 32px; }
       .quote-frame-wrap,
       .quote-frame-wrap iframe { min-height: 620px; height: 620px; }
       .quote-hub-actions { flex-direction: column; }
@@ -224,82 +215,63 @@
 </head>
 <body>
   <header class="hero">
+    <div class="hero-badge">Dispatcher Portal</div>
     <h1>Innovative Carriers — Quote Dashboard</h1>
-    <p>Your workspace for reviewing and responding to LTL quote requests assigned to your mailbox.</p>
+    <p>Sign in to review and respond to LTL quote requests assigned to your mailbox.</p>
   </header>
 
   <main class="container">
     <section class="quote-hub" id="quote-dashboard">
-      <h2>Dispatcher workspace</h2>
-      <p class="intro">
-        Sign in below with the email and password provided by your admin. Need access?
-        Use <strong>Forgot password?</strong> in the sign-in panel to reset via email.
-      </p>
+      <div class="quote-hub-header">
+        <h2>Sign in to your workspace</h2>
+        <p class="intro">
+          Use the email and password provided by your admin. Need access?
+          Click <strong>Forgot password?</strong> in the sign-in panel to reset via email.
+        </p>
+      </div>
 
       <div class="steps" aria-label="How to use the quote dashboard">
         <article class="step">
           <div class="step-num" aria-hidden="true">1</div>
           <h3>Sign in</h3>
-          <p>Enter your dispatcher email and password in the panel below.</p>
+          <p>Enter your dispatcher email and password below.</p>
         </article>
         <article class="step">
           <div class="step-num" aria-hidden="true">2</div>
           <h3>Connect Outlook</h3>
-          <p>After sign-in, connect your Outlook mailbox so new quote emails appear in your inbox.</p>
+          <p>Link your mailbox so new quote emails appear in your inbox.</p>
         </article>
         <article class="step">
           <div class="step-num" aria-hidden="true">3</div>
           <h3>Review quotes</h3>
-          <p>Open each request, choose carriers, copy your draft reply, and send from Outlook.</p>
+          <p>Choose carriers, copy your draft reply, and send from Outlook.</p>
         </article>
       </div>
 
-      <div class="quote-hub-grid">
-        <aside class="quote-dispatchers">
-          <h3>Your team</h3>
-          <div class="dispatcher-row">
-            <strong>Izzy</strong>
-            <span>Izzy@innovativecarriers.com</span>
-          </div>
-          <div class="dispatcher-row">
-            <strong>Diego</strong>
-            <span>diego@innovativecarriers.com</span>
-          </div>
-          <div class="dispatcher-row">
-            <strong>Quote Desk</strong>
-            <span>qd@innovativecarriers.com</span>
-          </div>
-          <p class="quote-note">
-            Each dispatcher only sees quotes assigned to their own email address.
-          </p>
-        </aside>
+      <div class="quote-frame-wrap">
+        <iframe
+          id="quote-dashboard-frame"
+          title="Quote dispatcher dashboard"
+          src="https://us-central1-tai-invoice-automation.cloudfunctions.net/quoteDispatcherHomePage?tenantId=default"
+          loading="lazy">
+        </iframe>
+      </div>
 
-        <div>
-          <div class="quote-frame-wrap">
-            <iframe
-              id="quote-dashboard-frame"
-              title="Quote dispatcher dashboard"
-              src="https://us-central1-tai-invoice-automation.cloudfunctions.net/quoteDispatcherHomePage?tenantId=default"
-              loading="lazy">
-            </iframe>
-          </div>
-          <div class="quote-hub-actions">
-            <a
-              class="quote-btn"
-              href="https://us-central1-tai-invoice-automation.cloudfunctions.net/quoteDispatcherHomePage?tenantId=default"
-              target="_blank"
-              rel="noopener noreferrer">
-              Open dashboard in new tab
-            </a>
-            <a
-              class="quote-btn secondary"
-              href="https://us-central1-tai-invoice-automation.cloudfunctions.net/quoteAdminPage?tenantId=default"
-              target="_blank"
-              rel="noopener noreferrer">
-              Manage quote settings
-            </a>
-          </div>
-        </div>
+      <div class="quote-hub-actions">
+        <a
+          class="quote-btn"
+          href="https://us-central1-tai-invoice-automation.cloudfunctions.net/quoteDispatcherHomePage?tenantId=default"
+          target="_blank"
+          rel="noopener noreferrer">
+          Open dashboard in new tab
+        </a>
+        <a
+          class="quote-btn secondary"
+          href="https://us-central1-tai-invoice-automation.cloudfunctions.net/quoteAdminPage?tenantId=default"
+          target="_blank"
+          rel="noopener noreferrer">
+          Manage quote settings
+        </a>
       </div>
     </section>
   </main>
