@@ -652,10 +652,24 @@ main {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 1rem 1.1rem;
+  padding: 1rem;
   background: var(--accent);
   color: #fff;
+}
+
+.support-chat-header-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.jerry-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px;
 }
 
 .support-chat-title {
