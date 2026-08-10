@@ -26,6 +26,9 @@ exports.handler = async (event, context) => {
       case 'klarna':
         paymentMethodTypes = ['klarna'];
         break;
+      case 'affirm':
+        paymentMethodTypes = ['affirm'];
+        break;
       case 'bank':
         paymentMethodTypes = ['us_bank_account'];
         break;

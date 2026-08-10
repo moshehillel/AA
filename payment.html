@@ -396,6 +396,19 @@
               </div>
             </div>
             
+            <div class="payment-method-card" data-method="affirm" data-fee="0.06">
+              <div class="payment-method-content">
+                <div class="payment-method-header">
+                  <span class="payment-method-icon">💳</span>
+                  <div class="payment-method-info">
+                    <div class="payment-method-name">Affirm</div>
+                    <div class="payment-method-fee">+6% convenience fee</div>
+                  </div>
+                </div>
+                <p class="payment-method-description">Buy now, pay later with Affirm financing</p>
+              </div>
+            </div>
+            
             <div class="payment-method-card" data-method="bank" data-fee="0">
               <div class="payment-method-content">
                 <div class="payment-method-header">
@@ -419,6 +432,32 @@
                   </div>
                 </div>
                 <p class="payment-method-description">Instant payment via Quickpay or Zelle</p>
+              </div>
+            </div>
+            
+            <div class="payment-method-card" data-method="wire" data-fee="0">
+              <div class="payment-method-content">
+                <div class="payment-method-header">
+                  <span class="payment-method-icon">🏦</span>
+                  <div class="payment-method-info">
+                    <div class="payment-method-name">Wire Transfer</div>
+                    <div class="payment-method-fee">No fee</div>
+                  </div>
+                </div>
+                <p class="payment-method-description">Domestic wire transfer from your bank</p>
+              </div>
+            </div>
+            
+            <div class="payment-method-card" data-method="mail" data-fee="0">
+              <div class="payment-method-content">
+                <div class="payment-method-header">
+                  <span class="payment-method-icon">✉️</span>
+                  <div class="payment-method-info">
+                    <div class="payment-method-name">Pay by Mail</div>
+                    <div class="payment-method-fee">No fee</div>
+                  </div>
+                </div>
+                <p class="payment-method-description">Send check or money order by mail</p>
               </div>
             </div>
           </div>
@@ -535,10 +574,16 @@
           return 'Continue to Stripe Checkout';
         case 'klarna':
           return 'Continue to Klarna Checkout';
+        case 'affirm':
+          return 'Continue to Affirm Checkout';
         case 'bank':
           return 'Continue to Bank Transfer Checkout';
         case 'quickpay':
           return 'View Quickpay Instructions';
+        case 'wire':
+          return 'View Wire Transfer Instructions';
+        case 'mail':
+          return 'View Pay by Mail Instructions';
         default:
           return 'Continue to Payment';
       }
@@ -550,6 +595,7 @@
       switch(selectedMethod) {
         case 'card':
         case 'klarna':
+        case 'affirm':
         case 'bank':
           payButton.disabled = true;
           payButton.textContent = 'Creating checkout session...';
@@ -587,6 +633,14 @@
         case 'quickpay':
           showQuickpayInstructions(total, nameParam);
           break;
+          
+        case 'wire':
+          showWireInstructions(total, nameParam);
+          break;
+          
+        case 'mail':
+          showMailInstructions(total, nameParam);
+          break;
       }
     }
     
@@ -597,6 +651,31 @@
         <p class="email">billing@advancedautomations.net</p>
         <p style="margin-top: 1rem;">Please include "${customerName}" in the payment note.</p>
         <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--gray-600);">For Zelle, search for our email address in your banking app.</p>
+      `;
+      paymentInstructionsEl.classList.add('show');
+      payButton.textContent = 'Instructions Shown Above';
+    }
+    
+    function showWireInstructions(total, customerName) {
+      paymentInstructionsEl.innerHTML = `
+        <h3>🏦 Wire Transfer Instructions</h3>
+        <p>Please initiate a domestic wire transfer for <strong>${formatCurrency(total)}</strong> using the following details:</p>
+        <p><strong>Account Number:</strong> 2910086022</p>
+        <p><strong>Routing Number:</strong> 021000021</p>
+        <p style="margin-top: 1rem;">Please include "${customerName}" in the memo/reference field.</p>
+      `;
+      paymentInstructionsEl.classList.add('show');
+      payButton.textContent = 'Instructions Shown Above';
+    }
+    
+    function showMailInstructions(total, customerName) {
+      paymentInstructionsEl.innerHTML = `
+        <h3>✉️ Pay by Mail Instructions</h3>
+        <p>Please send a check or money order for <strong>${formatCurrency(total)}</strong> to:</p>
+        <p style="margin-top: 1rem;"><strong>Advanced Automations</strong></p>
+        <p>6 Ungvar St Suite 306</p>
+        <p>Monroe, NY 10950</p>
+        <p style="margin-top: 1rem;">Please make check payable to "Advanced Automations" and include "${customerName}" in the memo.</p>
       `;
       paymentInstructionsEl.classList.add('show');
       payButton.textContent = 'Instructions Shown Above';
