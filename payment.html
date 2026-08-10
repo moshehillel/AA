@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment | Advanced Automations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root {
+      --white: #ffffff;
+      --cyan: #19c7d4;
+      --green: #42d392;
+      --blue: #2477ff;
+      --navy: #08111f;
+      --paper: #f1f5f9;
+      --ink: #111827;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --shadow: 0 24px 70px rgba(8, 17, 31, 0.12);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+    
+    .payment-page {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #07111f 0%, #0a1729 54%, #07111f 100%);
+      color: var(--white);
+      padding: 6rem 1.5rem 4rem;
+    }
+    
+    .payment-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    .payment-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    
+    .payment-header p.eyebrow {
+      color: var(--cyan);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    
+    .payment-header h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--white) 0%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .payment-header p.subtitle {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .payment-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    
+    .payment-summary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 2rem;
+      backdrop-filter: blur(10px);
+    }
+    
+    .payment-summary h2 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: var(--white);
+    }
+    
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .summary-row:last-child {
+      border-bottom: none;
+    }
+    
+    .summary-label {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.95rem;
+    }
+    
+    .summary-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--white);
+    }
+    
+    .summary-value.total {
+      font-size: 1.8rem;
+      color: var(--green);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+    }
+    
+    .payment-methods-section {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 2rem;
+    }
+    
+    .payment-methods-section h2 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: var(--white);
+    }
+    
+    .payment-methods {
+      display: grid;
+      gap: 1rem;
+    }
+    
+    .payment-method-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .payment-method-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(25, 199, 212, 0.1), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .payment-method-card:hover {
+      border-color: rgba(25, 199, 212, 0.4);
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateY(-2px);
+    }
+    
+    .payment-method-card:hover::before {
+      opacity: 1;
+    }
+    
+    .payment-method-card.selected {
+      border-color: var(--cyan);
+      background: rgba(25, 199, 212, 0.08);
+      box-shadow: 0 0 20px rgba(25, 199, 212, 0.2);
+    }
+    
+    .payment-method-card.selected::before {
+      opacity: 1;
+    }
+    
+    .payment-method-content {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .payment-method-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .payment-method-icon {
+      font-size: 1.8rem;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+    }
+    
+    .payment-method-info {
+      flex: 1;
+    }
+    
+    .payment-method-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--white);
+    }
+    
+    .payment-method-fee {
+      font-size: 0.85rem;
+      color: var(--cyan);
+      font-weight: 600;
+      margin-top: 0.25rem;
+    }
+    
+    .payment-method-description {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+    
+    .payment-total-section {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, rgba(25, 199, 212, 0.12), rgba(66, 211, 146, 0.08));
+      border: 1px solid rgba(25, 199, 212, 0.3);
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+      margin-top: 1rem;
+    }
+    
+    .payment-total-label {
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    
+    .payment-total-amount {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--green);
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      margin-bottom: 1.5rem;
+    }
+    
+    .payment-button {
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      border: none;
+      border-radius: 12px;
+      color: var(--white);
+      font-size: 1.15rem;
+      font-weight: 700;
+      padding: 1.25rem 3rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      width: 100%;
+      max-width: 400px;
+      font-family: "Inter", system-ui, sans-serif;
+    }
+    
+    .payment-button:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(36, 119, 255, 0.4);
+    }
+    
+    .payment-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .payment-instructions {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      display: none;
+      grid-column: 1 / -1;
+    }
+    
+    .payment-instructions.show {
+      display: block;
+      animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .payment-instructions h3 {
+      margin-bottom: 1rem;
+      color: var(--cyan);
+      font-size: 1.2rem;
+    }
+    
+    .payment-instructions p {
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.7;
+      margin-bottom: 0.75rem;
+    }
+    
+    .payment-instructions strong {
+      color: var(--white);
+    }
+    
+    .payment-instructions .email {
+      color: var(--green);
+      font-weight: 600;
+    }
+    
+    .error-message {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 2rem;
+      color: #fca5a5;
+      display: none;
+      grid-column: 1 / -1;
+    }
+    
+    .error-message.show {
+      display: block;
+      animation: slideDown 0.3s ease;
+    }
+    
+    @media (max-width: 768px) {
+      .payment-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .payment-page {
+        padding: 4rem 1rem 2rem;
+      }
+      
+      .payment-total-amount {
+        font-size: 2.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="payment-page">
+    <div class="payment-container">
+      <div class="payment-header">
+        <p class="eyebrow">Secure Payment</p>
+        <h1>Complete Your Payment</h1>
+        <p class="subtitle">Select your preferred payment method below to proceed</p>
+      </div>
+      
+      <div id="error-message" class="error-message"></div>
+      
+      <div class="payment-grid">
+        <div class="payment-summary">
+          <h2>Payment Summary</h2>
+          <div class="summary-row">
+            <span class="summary-label">Customer Name</span>
+            <span class="summary-value" id="customer-name">Loading...</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Base Amount</span>
+            <span class="summary-value" id="base-amount">Loading...</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Processing Fee</span>
+            <span class="summary-value" id="processing-fee">$0.00</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Total</span>
+            <span class="summary-value total" id="total-amount">Loading...</span>
+          </div>
+        </div>
+        
+        <div class="payment-methods-section">
+          <h2>Select Payment Method</h2>
+          <div class="payment-methods">
+            <div class="payment-method-card" data-method="card" data-fee="0.03">
+              <div class="payment-method-content">
+                <div class="payment-method-header">
+                  <span class="payment-method-icon">💳</span>
+                  <div class="payment-method-info">
+                    <div class="payment-method-name">Credit Card</div>
+                    <div class="payment-method-fee">+3% convenience fee</div>
+                  </div>
+                </div>
+                <p class="payment-method-description">Pay securely with your credit or debit card via Stripe</p>
+              </div>
+            </div>
+            
+            <div class="payment-method-card" data-method="klarna" data-fee="0.06">
+              <div class="payment-method-content">
+                <div class="payment-method-header">
+                  <span class="payment-method-icon">🛒</span>
+                  <div class="payment-method-info">
+                    <div class="payment-method-name">Klarna</div>
+                    <div class="payment-method-fee">+6% convenience fee</div>
+                  </div>
+                </div>
+                <p class="payment-method-description">Buy now, pay later with Klarna installment plans</p>
+              </div>
+            </div>
+            
+            <div class="payment-method-card" data-method="bank" data-fee="0">
+              <div class="payment-method-content">
+                <div class="payment-method-header">
+                  <span class="payment-method-icon">🏦</span>
+                  <div class="payment-method-info">
+                    <div class="payment-method-name">Bank Transfer / ACH</div>
+                    <div class="payment-method-fee">No fee</div>
+                  </div>
+                </div>
+                <p class="payment-method-description">Direct bank transfer with no additional fees</p>
+              </div>
+            </div>
+            
+            <div class="payment-method-card" data-method="quickpay" data-fee="0">
+              <div class="payment-method-content">
+                <div class="payment-method-header">
+                  <span class="payment-method-icon">⚡</span>
+                  <div class="payment-method-info">
+                    <div class="payment-method-name">Quickpay / Zelle</div>
+                    <div class="payment-method-fee">No fee</div>
+                  </div>
+                </div>
+                <p class="payment-method-description">Instant payment via Quickpay or Zelle</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="payment-total-section">
+          <div class="payment-total-label">Total Amount Due</div>
+          <div class="payment-total-amount" id="display-total">$0.00</div>
+          <button id="pay-button" class="payment-button" disabled>Select a payment method</button>
+        </div>
+        
+        <div id="payment-instructions" class="payment-instructions">
+          <!-- Payment instructions will be shown here -->
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Parse URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const amountParam = urlParams.get('amount');
+    const nameParam = urlParams.get('name');
+    
+    // Elements
+    const customerNameEl = document.getElementById('customer-name');
+    const baseAmountEl = document.getElementById('base-amount');
+    const processingFeeEl = document.getElementById('processing-fee');
+    const totalAmountEl = document.getElementById('total-amount');
+    const displayTotalEl = document.getElementById('display-total');
+    const errorMessageEl = document.getElementById('error-message');
+    const payButton = document.getElementById('pay-button');
+    const paymentInstructionsEl = document.getElementById('payment-instructions');
+    const paymentMethodCards = document.querySelectorAll('.payment-method-card');
+    
+    // State
+    let baseAmount = 0;
+    let selectedMethod = null;
+    let feeRate = 0;
+    
+    // Format currency
+    function formatCurrency(cents) {
+      return '$' + (cents / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+    
+    // Initialize page
+    function init() {
+      if (!amountParam) {
+        showError('Missing amount parameter. Please provide ?amount=XXXXXX');
+        return;
+      }
+      
+      if (!nameParam) {
+        showError('Missing customer name parameter. Please provide ?name=XXXXXX');
+        return;
+      }
+      
+      baseAmount = parseInt(amountParam);
+      if (isNaN(baseAmount) || baseAmount <= 0) {
+        showError('Invalid amount provided');
+        return;
+      }
+      
+      customerNameEl.textContent = nameParam;
+      baseAmountEl.textContent = formatCurrency(baseAmount);
+      totalAmountEl.textContent = formatCurrency(baseAmount);
+      displayTotalEl.textContent = formatCurrency(baseAmount);
+      
+      // Add click handlers for payment methods
+      paymentMethodCards.forEach(card => {
+        card.addEventListener('click', () => selectPaymentMethod(card));
+      });
+      
+      payButton.addEventListener('click', handlePayment);
+    }
+    
+    function showError(message) {
+      errorMessageEl.textContent = message;
+      errorMessageEl.classList.add('show');
+      payButton.disabled = true;
+    }
+    
+    function selectPaymentMethod(card) {
+      // Remove selected class from all cards
+      paymentMethodCards.forEach(c => c.classList.remove('selected'));
+      
+      // Add selected class to clicked card
+      card.classList.add('selected');
+      
+      // Update state
+      selectedMethod = card.dataset.method;
+      feeRate = parseFloat(card.dataset.fee);
+      
+      // Calculate fee and total
+      const processingFee = Math.round(baseAmount * feeRate);
+      const total = baseAmount + processingFee;
+      
+      // Update display
+      processingFeeEl.textContent = formatCurrency(processingFee);
+      totalAmountEl.textContent = formatCurrency(total);
+      displayTotalEl.textContent = formatCurrency(total);
+      
+      // Enable button
+      payButton.disabled = false;
+      payButton.textContent = getButtonText();
+      
+      // Hide instructions
+      paymentInstructionsEl.classList.remove('show');
+    }
+    
+    function getButtonText() {
+      switch(selectedMethod) {
+        case 'card':
+          return 'Continue to Stripe Checkout';
+        case 'klarna':
+          return 'Continue to Klarna Checkout';
+        case 'bank':
+          return 'View Bank Transfer Instructions';
+        case 'quickpay':
+          return 'View Quickpay Instructions';
+        default:
+          return 'Continue to Payment';
+      }
+    }
+    
+    async function handlePayment() {
+      const total = baseAmount + Math.round(baseAmount * feeRate);
+      
+      switch(selectedMethod) {
+        case 'card':
+        case 'klarna':
+          payButton.disabled = true;
+          payButton.textContent = 'Creating checkout session...';
+          
+          try {
+            const response = await fetch('/.netlify/functions/create-checkout', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                amount: total,
+                customerName: nameParam,
+                paymentMethod: selectedMethod
+              })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.url) {
+              window.location.href = data.url;
+            } else {
+              showError(data.error || 'Failed to create checkout session');
+              payButton.disabled = false;
+              payButton.textContent = getButtonText();
+            }
+          } catch (error) {
+            console.error('Checkout error:', error);
+            showError('Network error. Please try again.');
+            payButton.disabled = false;
+            payButton.textContent = getButtonText();
+          }
+          break;
+          
+        case 'bank':
+          showBankInstructions(total, nameParam);
+          break;
+          
+        case 'quickpay':
+          showQuickpayInstructions(total, nameParam);
+          break;
+      }
+    }
+    
+    function showBankInstructions(total, customerName) {
+      paymentInstructionsEl.innerHTML = `
+        <h3>🏦 Bank Transfer Instructions</h3>
+        <p>Please initiate a bank transfer for <strong>${formatCurrency(total)}</strong> using the following details:</p>
+        <p><strong>Bank:</strong> Customers Bank</p>
+        <p><strong>Address:</strong> 99 Bridge St. Phoenixville, PA 19460</p>
+        <p><strong>Account Number:</strong> 4255247</p>
+        <p><strong>Routing for ACH & Domestic Wire:</strong> 031302971</p>
+        <p style="margin-top: 1rem; color: var(--cyan);">Please include "${customerName}" in the memo/reference field.</p>
+      `;
+      paymentInstructionsEl.classList.add('show');
+      payButton.textContent = 'Instructions Shown Above';
+    }
+    
+    function showQuickpayInstructions(total, customerName) {
+      paymentInstructionsEl.innerHTML = `
+        <h3>⚡ Quickpay / Zelle Instructions</h3>
+        <p>Please send <strong>${formatCurrency(total)}</strong> via Quickpay or Zelle to:</p>
+        <p class="email">billing@advancedautomations.net</p>
+        <p style="margin-top: 1rem;">Please include "${customerName}" in the payment note.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem; color: rgba(255, 255, 255, 0.6);">For Zelle, search for our email address in your banking app.</p>
+      `;
+      paymentInstructionsEl.classList.add('show');
+      payButton.textContent = 'Instructions Shown Above';
+    }
+    
+    // Initialize on page load
+    init();
+  </script>
+</body>
+</html>
