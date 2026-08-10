@@ -536,7 +536,7 @@
         case 'klarna':
           return 'Continue to Klarna Checkout';
         case 'bank':
-          return 'View Bank Transfer Instructions';
+          return 'Continue to Bank Transfer Checkout';
         case 'quickpay':
           return 'View Quickpay Instructions';
         default:
@@ -550,6 +550,7 @@
       switch(selectedMethod) {
         case 'card':
         case 'klarna':
+        case 'bank':
           payButton.disabled = true;
           payButton.textContent = 'Creating checkout session...';
           
@@ -583,28 +584,10 @@
           }
           break;
           
-        case 'bank':
-          showBankInstructions(total, nameParam);
-          break;
-          
         case 'quickpay':
           showQuickpayInstructions(total, nameParam);
           break;
       }
-    }
-    
-    function showBankInstructions(total, customerName) {
-      paymentInstructionsEl.innerHTML = `
-        <h3>🏦 Bank Transfer Instructions</h3>
-        <p>Please initiate a bank transfer for <strong>${formatCurrency(total)}</strong> using the following details:</p>
-        <p><strong>Bank:</strong> Customers Bank</p>
-        <p><strong>Address:</strong> 99 Bridge St. Phoenixville, PA 19460</p>
-        <p><strong>Account Number:</strong> 4255247</p>
-        <p><strong>Routing for ACH & Domestic Wire:</strong> 031302971</p>
-        <p style="margin-top: 1rem; color: var(--cyan);">Please include "${customerName}" in the memo/reference field.</p>
-      `;
-      paymentInstructionsEl.classList.add('show');
-      payButton.textContent = 'Instructions Shown Above';
     }
     
     function showQuickpayInstructions(total, customerName) {
@@ -613,7 +596,7 @@
         <p>Please send <strong>${formatCurrency(total)}</strong> via Quickpay or Zelle to:</p>
         <p class="email">billing@advancedautomations.net</p>
         <p style="margin-top: 1rem;">Please include "${customerName}" in the payment note.</p>
-        <p style="margin-top: 0.5rem; font-size: 0.9rem; color: rgba(255, 255, 255, 0.6);">For Zelle, search for our email address in your banking app.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--gray-600);">For Zelle, search for our email address in your banking app.</p>
       `;
       paymentInstructionsEl.classList.add('show');
       payButton.textContent = 'Instructions Shown Above';

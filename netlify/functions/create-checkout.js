@@ -26,6 +26,9 @@ exports.handler = async (event, context) => {
       case 'klarna':
         paymentMethodTypes = ['klarna'];
         break;
+      case 'bank':
+        paymentMethodTypes = ['us_bank_account'];
+        break;
       default:
         return {
           statusCode: 400,
