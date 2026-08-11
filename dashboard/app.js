@@ -554,6 +554,7 @@
 
   const chatEls = {
     toggle: document.getElementById("supportChatToggle"),
+    headerToggle: document.getElementById("supportChatHeaderToggle"),
     panel: document.getElementById("supportChatPanel"),
     log: document.getElementById("supportChatLog"),
     form: document.getElementById("supportChatForm"),
@@ -563,6 +564,7 @@
   const chatHistory = [];
   let chatBusy = false;
   let chatStarted = false;
+  let chatOpen = false;
 
   function appendChatMessage(role, text) {
     const bubble = document.createElement("p");
@@ -574,14 +576,21 @@
   }
 
   function setChatOpen(open) {
-    chatEls.panel.hidden = !open;
-    chatEls.toggle.classList.toggle("is-open", open);
-    chatEls.toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    chatOpen = !!open;
+    chatEls.panel.hidden = !chatOpen;
+    chatEls.toggle.classList.toggle("is-open", chatOpen);
+    chatEls.toggle.setAttribute("aria-expanded", chatOpen ? "true" : "false");
     chatEls.toggle.setAttribute(
         "aria-label",
-        open ? "Close Jerry chat" : "Chat with Jerry",
+        chatOpen ? "Close Jerry chat" : "Chat with Jerry",
     );
-    if (open) {
+    if (chatEls.headerToggle) {
+      chatEls.headerToggle.setAttribute(
+          "aria-label",
+          chatOpen ? "Close Jerry chat" : "Open Jerry chat",
+      );
+    }
+    if (chatOpen) {
       chatEls.input.focus();
       if (!chatStarted) {
         chatStarted = true;
@@ -596,7 +605,7 @@
   }
 
   function toggleChat() {
-    setChatOpen(chatEls.panel.hidden);
+    setChatOpen(!chatOpen);
   }
 
   function endChat() {
@@ -672,7 +681,18 @@
   }
 
   if (chatEls.toggle && chatEls.panel) {
-    chatEls.toggle.addEventListener("click", toggleChat);
+    chatEls.toggle.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleChat();
+    });
+    if (chatEls.headerToggle) {
+      chatEls.headerToggle.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (chatOpen) {
+          setChatOpen(false);
+        }
+      });
+    }
     chatEls.input.addEventListener("input", autoGrowChatInput);
 
     chatEls.form.addEventListener("submit", (event) => {
