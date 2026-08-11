@@ -111,27 +111,30 @@
     </section>
   </main>
 
-  <button id="supportChatToggle" class="support-chat-toggle" aria-label="Open support chat">
-    <span aria-hidden="true">&#128172;</span>
-  </button>
-
-  <section id="supportChatPanel" class="support-chat-panel" hidden aria-label="Support chat">
-    <header class="support-chat-header">
-      <div class="support-chat-header-content">
-        <img src="../Images/jerry-robot-signature.png" alt="Jerry" class="jerry-avatar">
-        <div>
-          <p class="support-chat-title">Ask Jerry</p>
-          <p class="support-chat-subtitle">Tell us what's going on — we'll pass it along</p>
+  <div id="supportChatRoot" class="support-chat-root">
+    <section id="supportChatPanel" class="support-chat-panel" hidden aria-label="Support chat">
+      <header class="support-chat-header">
+        <div class="support-chat-header-content">
+          <img src="../Images/jerry-robot-signature.png" alt="Jerry" class="jerry-avatar">
+          <div>
+            <p class="support-chat-title">Ask Jerry</p>
+            <p class="support-chat-subtitle">Ask about loads, invoices, or the dashboard</p>
+          </div>
         </div>
-      </div>
-      <button id="supportChatClose" class="support-chat-close" aria-label="Close support chat">&times;</button>
-    </header>
-    <div id="supportChatLog" class="support-chat-log" role="log" aria-live="polite"></div>
-    <form id="supportChatForm" class="support-chat-form">
-      <textarea id="supportChatInput" class="support-chat-input" rows="1" placeholder="Describe the issue you're seeing…" aria-label="Message"></textarea>
-      <button type="submit" class="support-chat-send" aria-label="Send message">&#10148;</button>
-    </form>
-  </section>
+      </header>
+      <div id="supportChatLog" class="support-chat-log" role="log" aria-live="polite"></div>
+      <form id="supportChatForm" class="support-chat-form">
+        <textarea id="supportChatInput" class="support-chat-input" rows="1" placeholder="Describe the issue you're seeing…" aria-label="Message"></textarea>
+        <button type="submit" class="support-chat-send" aria-label="Send message">&#10148;</button>
+      </form>
+    </section>
+
+    <button id="supportChatToggle" class="support-chat-toggle" type="button"
+      aria-label="Chat with Jerry" aria-expanded="false">
+      <img src="../Images/jerry-robot-signature.png" alt="" class="support-chat-fab-img">
+      <span class="support-chat-tooltip">Hi, I am Jerry — how can I help?</span>
+    </button>
+  </div>
 
   <script src="clients.js"></script>
   <script src="app.js"></script>

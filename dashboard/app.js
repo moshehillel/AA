@@ -555,7 +555,6 @@
   const chatEls = {
     toggle: document.getElementById("supportChatToggle"),
     panel: document.getElementById("supportChatPanel"),
-    close: document.getElementById("supportChatClose"),
     log: document.getElementById("supportChatLog"),
     form: document.getElementById("supportChatForm"),
     input: document.getElementById("supportChatInput"),
@@ -574,24 +573,30 @@
     return bubble;
   }
 
-  function openChat() {
-    chatEls.panel.hidden = false;
-    chatEls.toggle.classList.add("is-hidden");
-    chatEls.input.focus();
-    if (!chatStarted) {
-      chatStarted = true;
-      appendChatMessage(
-        "bot",
-        `Hi! I'm the support assistant for ${client.name}. What's going ` +
-          "on — what did you expect to see, and what are you seeing " +
-          "instead?",
-      );
+  function setChatOpen(open) {
+    chatEls.panel.hidden = !open;
+    chatEls.toggle.classList.toggle("is-open", open);
+    chatEls.toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    chatEls.toggle.setAttribute(
+        "aria-label",
+        open ? "Close Jerry chat" : "Chat with Jerry",
+    );
+    if (open) {
+      chatEls.input.focus();
+      if (!chatStarted) {
+        chatStarted = true;
+        appendChatMessage(
+            "bot",
+            `Hi! I am Jerry, the support assistant for ${client.name}. ` +
+            "Ask about a load number, invoice status, or anything on " +
+            "the dashboard.",
+        );
+      }
     }
   }
 
-  function closeChat() {
-    chatEls.panel.hidden = true;
-    chatEls.toggle.classList.remove("is-hidden");
+  function toggleChat() {
+    setChatOpen(chatEls.panel.hidden);
   }
 
   function endChat() {
@@ -667,8 +672,7 @@
   }
 
   if (chatEls.toggle && chatEls.panel) {
-    chatEls.toggle.addEventListener("click", openChat);
-    chatEls.close.addEventListener("click", closeChat);
+    chatEls.toggle.addEventListener("click", toggleChat);
     chatEls.input.addEventListener("input", autoGrowChatInput);
 
     chatEls.form.addEventListener("submit", (event) => {
