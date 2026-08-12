@@ -255,7 +255,8 @@ h1 {
 .trust-badges {
   display: flex;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
   flex-wrap: wrap;
 }
 
