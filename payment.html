@@ -463,14 +463,14 @@
           </div>
         </div>
         
+        <div id="payment-instructions" class="payment-instructions">
+          <!-- Payment instructions will be shown here -->
+        </div>
+        
         <div class="payment-total-section">
           <div class="payment-total-label">Total Amount Due</div>
           <div class="payment-total-amount" id="display-total">$0.00</div>
           <button id="pay-button" class="payment-button" disabled>Select a payment method</button>
-        </div>
-        
-        <div id="payment-instructions" class="payment-instructions">
-          <!-- Payment instructions will be shown here -->
         </div>
       </div>
     </div>
@@ -653,7 +653,7 @@
         <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--gray-600);">For Zelle, search for our email address in your banking app.</p>
       `;
       paymentInstructionsEl.classList.add('show');
-      payButton.textContent = 'Instructions Shown Above';
+      payButton.textContent = 'Proceed to Payment';
     }
     
     function showWireInstructions(total, customerName) {
@@ -665,7 +665,7 @@
         <p style="margin-top: 1rem;">Please include "${customerName}" in the memo/reference field.</p>
       `;
       paymentInstructionsEl.classList.add('show');
-      payButton.textContent = 'Instructions Shown Above';
+      payButton.textContent = 'Proceed to Payment';
     }
     
     function showMailInstructions(total, customerName) {
@@ -678,7 +678,7 @@
         <p style="margin-top: 1rem;">Please make check payable to "Advanced Automations" and include "${customerName}" in the memo.</p>
       `;
       paymentInstructionsEl.classList.add('show');
-      payButton.textContent = 'Instructions Shown Above';
+      payButton.textContent = 'Proceed to Payment';
     }
     
     // Initialize on page load
