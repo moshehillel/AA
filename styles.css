@@ -250,6 +250,28 @@ h1 {
   border-left: 3px solid var(--green);
   color: rgba(255, 255, 255, 0.7);
   margin-top: 2rem;
+}
+
+.trust-badges {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.trust-badge {
+  background: rgba(66, 211, 146, 0.15);
+  border: 1px solid rgba(66, 211, 146, 0.3);
+  color: var(--green);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+.trust-line {
   max-width: 620px;
   padding-left: 1rem;
 }
