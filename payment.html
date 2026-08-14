@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script src="https://js.stripe.com/v3/"></script>
   <style>
     :root {
       --primary: #1e40af;
@@ -477,10 +478,15 @@
   </div>
   
   <script>
-    // Parse URL parameters
+    // Read Stripe config from global CONFIG (from ivr.js) when available
+    const PAGE_CONFIG = window.CONFIG || {};
+    const STRIPE_PUBLISHABLE = PAGE_CONFIG.STRIPE_PUBLISHABLE_KEY || PAGE_CONFIG.STRIPE_PUBLIC_KEY || 'pk_test_51PhyTeIQCnp7AxgEQrzrSyhXOSBcR0i6MMIflhBvVPx3HQf6SNUu0qPj3j2MIKP68PcXMWEMi1aSszrDtepYHqMv00TrGLwdUi';
+    const CREATE_CHECKOUT_URL = PAGE_CONFIG.CREATE_CHECKOUT_URL || PAGE_CONFIG.CREATE_CHECKOUT || '/.netlify/functions/create-checkout';
+    const stripe = Stripe(STRIPE_PUBLISHABLE);
+    // Parse URL parameters (accept both old and new parameter names)
     const urlParams = new URLSearchParams(window.location.search);
-    const amountParam = urlParams.get('amount');
-    const nameParam = urlParams.get('name');
+    const amountParam = urlParams.get('a') || urlParams.get('amount');
+    const nameParam = urlParams.get('n') || urlParams.get('name');
     
     // Elements
     const customerNameEl = document.getElementById('customer-name');
@@ -601,21 +607,27 @@
           payButton.textContent = 'Creating checkout session...';
           
           try {
-            const response = await fetch('/.netlify/functions/create-checkout', {
+            const success_url = window.location.href + (window.location.href.includes('?') ? '&paid=1' : '?paid=1');
+            const cancel_url = window.location.href + (window.location.href.includes('?') ? '&canceled=1' : '?canceled=1');
+            const resp = await fetch(CREATE_CHECKOUT_URL, {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                amount: total,
-                customerName: nameParam,
-                paymentMethod: selectedMethod
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                amount: String(total),
+                amount_cents: String(total),
+                currency: 'usd',
+                description: 'AA payment',
+                customer_name: nameParam || '',
+                payment_method: selectedMethod || 'card',
+                success_url,
+                cancel_url
               })
             });
-            
-            const data = await response.json();
-            
-            if (response.ok && data.url) {
+            const data = await resp.json().catch(() => ({}));
+            if (data.session_id) {
+              const { error } = await stripe.redirectToCheckout({ sessionId: data.session_id });
+              if (error) throw error;
+            } else if (data.url) {
               window.location.href = data.url;
             } else {
               showError(data.error || 'Failed to create checkout session');
@@ -624,7 +636,7 @@
             }
           } catch (error) {
             console.error('Checkout error:', error);
-            showError('Network error. Please try again.');
+            showError(error?.message || 'Network error. Please try again.');
             payButton.disabled = false;
             payButton.textContent = getButtonText();
           }
