@@ -590,6 +590,13 @@ main {
   font-weight: 700;
 }
 
+.card-value.is-thinking {
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--muted);
+}
+
 .chart-section {
   background: var(--card-bg);
   border: 1px solid var(--border);

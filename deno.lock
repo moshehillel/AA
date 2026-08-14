@@ -11,7 +11,8 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
-        "npm:nodemailer@^6.9.7"
+        "npm:nodemailer@^6.9.7",
+        "npm:stripe@14"
       ]
     }
   }

@@ -292,6 +292,8 @@
   }
 
   async function loadTasks() {
+    els.tasksContainer.innerHTML =
+      '<p class="panel-empty">thinking</p>';
     try {
       const data = await fetchJson("/getDashboardTasks?limit=50");
       renderTasks(data.tasks || []);
@@ -331,7 +333,7 @@
     }
     els.invoicesLoadMoreWrap.hidden = false;
     els.loadMoreInvoicesBtn.disabled = Boolean(loading);
-    els.loadMoreInvoicesBtn.textContent = loading ? "Loading…" : "Load more";
+    els.loadMoreInvoicesBtn.textContent = loading ? "thinking" : "Load more";
   }
 
   function renderInvoices(invoices) {
@@ -376,6 +378,8 @@
       invoiceHasMore = false;
       els.refreshInvoicesBtn.disabled = true;
       updateLoadMoreButton(false);
+      els.invoicesContainer.innerHTML =
+        '<p class="panel-empty">thinking</p>';
     } else if (els.loadMoreInvoicesBtn) {
       updateLoadMoreButton(true);
     }
@@ -481,11 +485,32 @@
     });
   }
 
+  function setStatsThinking(active) {
+    const tiles = [
+      els.statInvoices,
+      els.statWorkflows,
+      els.statAddedCharges,
+      els.statReplied,
+      els.statForwarded,
+    ];
+    tiles.forEach((el) => {
+      if (!el) return;
+      if (active) {
+        el.textContent = "thinking";
+        el.classList.add("is-thinking");
+      } else {
+        el.classList.remove("is-thinking");
+      }
+    });
+  }
+
   async function loadStats(range) {
     showError(null);
+    setStatsThinking(true);
     try {
       const data = await fetchJson(`/getDashboardStats?range=${range}`);
       statsTotals = data.totals || null;
+      setStatsThinking(false);
       els.statInvoices.textContent = data.totals.invoicesProcessed ?? "–";
       if (els.statWorkflows) {
         els.statWorkflows.textContent = data.totals.workflowsCompleted ?? "–";
@@ -498,6 +523,7 @@
       els.statForwarded.textContent = data.totals.emailsForwarded ?? "–";
       renderChart(data.series, range);
     } catch (error) {
+      setStatsThinking(false);
       console.error("loadStats failed:", error);
       showError("Couldn't load dashboard stats. Please try again shortly.");
     }
@@ -621,7 +647,7 @@
     chatHistory.push({role: "user", content: text});
     appendChatMessage("user", text);
 
-    const pending = appendChatMessage("bot", "Thinking…");
+    const pending = appendChatMessage("bot", "thinking");
     pending.classList.add("is-pending");
     chatBusy = true;
     chatEls.input.disabled = true;
