@@ -7,7 +7,22 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { amount, customerName, paymentMethod } = JSON.parse(event.body);
+    // Parse body as form-urlencoded or JSON
+    let body;
+    if (event.headers['content-type'] && event.headers['content-type'].includes('application/x-www-form-urlencoded')) {
+      const params = new URLSearchParams(event.body);
+      body = {
+        amount: parseInt(params.get('amount')),
+        customerName: params.get('customer_name'),
+        paymentMethod: params.get('payment_method'),
+        success_url: params.get('success_url'),
+        cancel_url: params.get('cancel_url')
+      };
+    } else {
+      body = JSON.parse(event.body);
+    }
+
+    const { amount, customerName, paymentMethod, success_url, cancel_url } = body;
 
     // Validate required fields
     if (!amount || !paymentMethod) {
@@ -56,8 +71,8 @@ exports.handler = async (event, context) => {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.URL || 'https://advancedautomations.net'}/payment.html?success=true`,
-      cancel_url: `${process.env.URL || 'https://advancedautomations.net'}/payment.html?canceled=true`,
+      success_url: success_url || `${process.env.URL || 'https://advancedautomations.net'}/payment.html?success=true`,
+      cancel_url: cancel_url || `${process.env.URL || 'https://advancedautomations.net'}/payment.html?canceled=true`,
       customer_email: customerName ? `${customerName.toLowerCase().replace(/\s+/g, '.')}@example.com` : undefined,
     });
 
