@@ -31,7 +31,14 @@
     completeForm: document.getElementById("mfaCompleteForm"),
     otpInput: document.getElementById("mfaOtpInput"),
     cancelBtn: document.getElementById("mfaCancelBtn"),
-    pipelineLink: document.getElementById("pipelineConsoleLink"),
+    weekSummaryBtn: document.getElementById("weekSummaryBtn"),
+    weekSummaryModal: document.getElementById("weekSummaryModal"),
+    weekSummaryRange: document.getElementById("weekSummaryRange"),
+    weekSummaryError: document.getElementById("weekSummaryError"),
+    weekSummaryLoading: document.getElementById("weekSummaryLoading"),
+    weekSummaryContent: document.getElementById("weekSummaryContent"),
+    weekSummaryStats: document.getElementById("weekSummaryStats"),
+    weekSummaryNote: document.getElementById("weekSummaryNote"),
     sandboxRunBtn: document.getElementById("sandboxRunBtn"),
     sandboxResult: document.getElementById("sandboxResult"),
   };
@@ -61,7 +68,7 @@
     const opts = options || {};
     const url = `${PROXY}?action=${encodeURIComponent(action)}`;
     const response = await fetch(url, {
-      method: opts.method || (action === "status" ? "GET" : "POST"),
+      method: opts.method || (action === "status" || action === "weekSummary" ? "GET" : "POST"),
       headers: opts.body ? {"Content-Type": "application/json"} : {},
       body: opts.body ? JSON.stringify(opts.body) : undefined,
     });
@@ -120,10 +127,6 @@
     els.reminderBanner.hidden = !data.needsReminder;
     setHeaderStatus(data.daysRemaining, data.needsReminder);
     setDaysLeftStyle(data.daysRemaining, data.needsReminder);
-
-    if (data.pipelineConsoleUrl && els.pipelineLink) {
-      els.pipelineLink.href = data.pipelineConsoleUrl;
-    }
 
     if (els.sandboxRunBtn) {
       els.sandboxRunBtn.disabled = !data.sandboxTriggerConfigured;
@@ -194,6 +197,108 @@
       showError(err.message || "Could not complete MFA renew.");
     } finally {
       submitBtn.disabled = false;
+    }
+  });
+
+  function closeWeekSummaryModal() {
+    if (!els.weekSummaryModal) return;
+    els.weekSummaryModal.hidden = true;
+  }
+
+  function openWeekSummaryModal() {
+    if (!els.weekSummaryModal) return;
+    els.weekSummaryModal.hidden = false;
+  }
+
+  function statCard(label, value, tone) {
+    const toneClass = tone ? ` wg-week-stat-${tone}` : "";
+    return (
+      `<article class="wg-week-stat${toneClass}">` +
+      `<span class="wg-stat-label">${label}</span>` +
+      `<strong class="wg-stat-value">${value}</strong>` +
+      `</article>`
+    );
+  }
+
+  function renderWeekSummary(data) {
+    const counts = data.counts || {};
+    const windowInfo = data.window || {};
+    if (els.weekSummaryRange) {
+      els.weekSummaryRange.textContent =
+        windowInfo.label ||
+        (windowInfo.startDate && windowInfo.endDate
+          ? `${windowInfo.startDate} – ${windowInfo.endDate}`
+          : "Last completed week");
+    }
+    if (els.weekSummaryStats) {
+      els.weekSummaryStats.innerHTML = [
+        statCard("Sessions approved", counts.sessionsApproved ?? 0, "good"),
+        statCard("Sessions failed", counts.sessionsFailed ?? 0, counts.sessionsFailed ? "bad" : ""),
+        statCard("Sessions skipped", counts.sessionsSkipped ?? 0),
+        statCard("New cases entered", counts.newCasesEntered ?? 0, "good"),
+        statCard("New cases blocked", counts.newCasesFailed ?? 0, counts.newCasesFailed ? "bad" : ""),
+        statCard("New services ok", counts.newServicesSucceeded ?? 0),
+        statCard("Closures completed", counts.closuresCompleted ?? 0),
+        statCard("Closures blocked", counts.closuresFailed ?? 0, counts.closuresFailed ? "bad" : ""),
+        statCard("Exceptions logged", counts.exceptionCount ?? 0),
+        statCard("Pipeline runs", counts.runsIncluded ?? 0),
+      ].join("");
+    }
+    if (els.weekSummaryNote) {
+      const parts = [];
+      if (windowInfo.definition) parts.push(windowInfo.definition);
+      if (counts.sessionsFromDryRunOnly) {
+        parts.push("Session counts are from Monday dry-run only (no live Tuesday run found).");
+      }
+      if ((counts.runsIncluded ?? 0) === 0) {
+        parts.push("No completed pipeline runs were found for this window.");
+      }
+      if (data.summariesScanned != null) {
+        parts.push("Scanned " + data.summariesScanned + " run summary file(s).");
+      }
+      els.weekSummaryNote.textContent = parts.join(" ");
+    }
+    if (els.weekSummaryLoading) els.weekSummaryLoading.hidden = true;
+    if (els.weekSummaryContent) els.weekSummaryContent.hidden = false;
+  }
+
+  async function loadWeekSummary() {
+    if (els.weekSummaryError) {
+      els.weekSummaryError.hidden = true;
+      els.weekSummaryError.textContent = "";
+    }
+    if (els.weekSummaryLoading) els.weekSummaryLoading.hidden = false;
+    if (els.weekSummaryContent) els.weekSummaryContent.hidden = true;
+    if (els.weekSummaryRange) els.weekSummaryRange.textContent = "Loading…";
+
+    try {
+      const data = await api("weekSummary");
+      renderWeekSummary(data);
+    } catch (err) {
+      if (els.weekSummaryLoading) els.weekSummaryLoading.hidden = true;
+      if (els.weekSummaryError) {
+        els.weekSummaryError.hidden = false;
+        els.weekSummaryError.textContent =
+          err.message || "Could not load last week summary.";
+      }
+      if (els.weekSummaryRange) els.weekSummaryRange.textContent = "Unavailable";
+    }
+  }
+
+  if (els.weekSummaryBtn) {
+    els.weekSummaryBtn.addEventListener("click", function () {
+      openWeekSummaryModal();
+      loadWeekSummary();
+    });
+  }
+
+  document.querySelectorAll("[data-close-week-summary]").forEach(function (el) {
+    el.addEventListener("click", closeWeekSummaryModal);
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && els.weekSummaryModal && !els.weekSummaryModal.hidden) {
+      closeWeekSummaryModal();
     }
   });
 

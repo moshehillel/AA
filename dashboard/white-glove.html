@@ -119,15 +119,41 @@
 
     <section class="wg-panel wg-panel-compact">
       <div class="wg-panel-head">
-        <h2 class="wg-panel-title">AWS console</h2>
+        <div>
+          <h2 class="wg-panel-title">Pipeline results</h2>
+          <p class="wg-panel-subtitle">Aggregated counts from last completed week</p>
+        </div>
       </div>
       <div class="wg-panel-body wg-links-row">
-        <a id="pipelineConsoleLink" class="wg-link-btn" href="#" target="_blank" rel="noopener">
-          Step Functions — manual runs &amp; history
-        </a>
+        <button id="weekSummaryBtn" type="button" class="wg-link-btn">
+          View last week summary
+        </button>
       </div>
     </section>
   </main>
+
+  <div id="weekSummaryModal" class="wg-modal" hidden>
+    <div class="wg-modal-backdrop" data-close-week-summary></div>
+    <div class="wg-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="weekSummaryTitle">
+      <div class="wg-modal-head">
+        <div>
+          <h2 id="weekSummaryTitle" class="wg-panel-title">Last week summary</h2>
+          <p id="weekSummaryRange" class="wg-panel-subtitle">Loading…</p>
+        </div>
+        <button type="button" class="wg-btn wg-btn-ghost wg-modal-close" data-close-week-summary aria-label="Close">
+          Close
+        </button>
+      </div>
+      <div class="wg-modal-body">
+        <p id="weekSummaryError" class="wg-banner wg-banner-error" hidden></p>
+        <p id="weekSummaryLoading" class="wg-lead">Loading pipeline counts…</p>
+        <div id="weekSummaryContent" hidden>
+          <div id="weekSummaryStats" class="wg-week-stats"></div>
+          <p id="weekSummaryNote" class="wg-footnote"></p>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="clients.js"></script>
   <script src="white-glove.js"></script>
