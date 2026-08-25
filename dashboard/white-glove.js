@@ -47,9 +47,16 @@
     livePresetSessionsBtn: document.getElementById("livePresetSessionsBtn"),
     liveLocalError: document.getElementById("liveLocalError"),
     liveResult: document.getElementById("liveResult"),
+    scheduleToggleBtn: document.getElementById("scheduleToggleBtn"),
+    scheduleToggleLabel: document.getElementById("scheduleToggleLabel"),
+    scheduleStateBadge: document.getElementById("scheduleStateBadge"),
+    scheduleStatusText: document.getElementById("scheduleStatusText"),
+    scheduleResult: document.getElementById("scheduleResult"),
   };
 
   let pendingSessionId = null;
+  let liveSchedulesEnabled = false;
+  let liveSchedulesBusy = false;
   let weekLoadingTimer = null;
   let weekLoadingIndex = 0;
 
@@ -137,9 +144,10 @@
 
   async function api(action, options) {
     const opts = options || {};
+    const getActions = { status: true, weekSummary: true, scheduleStatus: true };
     const url = `${PROXY}?action=${encodeURIComponent(action)}`;
     const response = await fetch(url, {
-      method: opts.method || (action === "status" || action === "weekSummary" ? "GET" : "POST"),
+      method: opts.method || (getActions[action] ? "GET" : "POST"),
       headers: opts.body ? {"Content-Type": "application/json"} : {},
       body: opts.body ? JSON.stringify(opts.body) : undefined,
     });
@@ -148,6 +156,60 @@
       throw new Error(data.error || `Request failed (${response.status})`);
     }
     return data;
+  }
+
+  function renderLiveSchedules(liveSchedules) {
+    const ls = liveSchedules || {};
+    liveSchedulesEnabled = Boolean(ls.enabled);
+
+    if (els.scheduleStateBadge) {
+      els.scheduleStateBadge.textContent = liveSchedulesEnabled ? "On" : "Off";
+      els.scheduleStateBadge.classList.toggle("wg-badge-schedule-on", liveSchedulesEnabled);
+      els.scheduleStateBadge.classList.toggle("wg-badge-schedule-off", !liveSchedulesEnabled);
+    }
+
+    if (els.scheduleToggleBtn) {
+      els.scheduleToggleBtn.disabled = ls.configured === false || liveSchedulesBusy;
+      els.scheduleToggleBtn.setAttribute("aria-checked", liveSchedulesEnabled ? "true" : "false");
+      els.scheduleToggleBtn.classList.toggle("wg-switch-on", liveSchedulesEnabled);
+      if (ls.configured === false) {
+        els.scheduleToggleBtn.title = "Live schedule rules are not configured on AWS yet.";
+      } else {
+        els.scheduleToggleBtn.title = "";
+      }
+    }
+
+    if (els.scheduleToggleLabel) {
+      els.scheduleToggleLabel.textContent = liveSchedulesEnabled
+        ? "Schedules ON"
+        : "Schedules OFF";
+    }
+
+    if (els.scheduleStatusText) {
+      els.scheduleStatusText.textContent =
+        ls.note ||
+        (ls.configured === false
+          ? "Schedule toggle not available until AWS deploy finishes."
+          : liveSchedulesEnabled
+            ? "Nightly cases + Tuesday sessions are enabled."
+            : "Nightly cases + Tuesday sessions are disabled.");
+    }
+  }
+
+  function doubleConfirmScheduleChange(wantOn) {
+    const rulesBlurb =
+      "Nightly case reports (Gluck open/closure, new & discharge) and Tuesday sessions (verified visits + caregiver codes).\n\n" +
+      "Monday dry-run preview is NOT changed.";
+
+    const first = wantOn
+      ? "Turn LIVE schedules ON? (1 of 2)\n\nThis enables automatic production HHA writes:\n" + rulesBlurb
+      : "Turn LIVE schedules OFF? (1 of 2)\n\nThis disables automatic production runs:\n" + rulesBlurb;
+    if (!window.confirm(first)) return false;
+
+    const second = wantOn
+      ? "Final confirmation (2 of 2): ENABLE live EventBridge schedules?\n\nNightly cases + Tuesday sessions will run on schedule with dryRun:false."
+      : "Final confirmation (2 of 2): DISABLE live EventBridge schedules?\n\nNightly cases + Tuesday sessions will stop until turned back on.";
+    return window.confirm(second);
   }
 
   function setHeaderStatus(daysRemaining, needsReminder) {
@@ -210,6 +272,10 @@
       if (data.liveRunConfigured === false) {
         els.liveRunBtn.title = "Live run is not configured on AWS yet (STATE_MACHINE_ARN).";
       }
+    }
+
+    if (data.liveSchedules) {
+      renderLiveSchedules(data.liveSchedules);
     }
   }
 
@@ -567,6 +633,71 @@
     });
   } else {
     console.error("[white-glove] liveRunBtn missing — hard-refresh; cached JS may be stale.");
+  }
+
+  if (els.scheduleToggleBtn) {
+    els.scheduleToggleBtn.addEventListener("click", async function () {
+      if (liveSchedulesBusy || els.scheduleToggleBtn.disabled) return;
+
+      const wantOn = !liveSchedulesEnabled;
+      if (!doubleConfirmScheduleChange(wantOn)) return;
+
+      liveSchedulesBusy = true;
+      els.scheduleToggleBtn.disabled = true;
+      if (els.scheduleToggleLabel) {
+        els.scheduleToggleLabel.textContent = wantOn ? "Enabling…" : "Disabling…";
+      }
+      if (els.scheduleResult) {
+        els.scheduleResult.hidden = true;
+        els.scheduleResult.textContent = "";
+      }
+      showError("");
+      showSuccess("");
+
+      try {
+        const data = await api("setLiveSchedules", {
+          method: "POST",
+          body: {
+            enabled: wantOn,
+            confirm: wantOn ? "SCHEDULE_ON" : "SCHEDULE_OFF",
+          },
+        });
+        renderLiveSchedules(data);
+        if (els.scheduleResult) {
+          els.scheduleResult.hidden = false;
+          els.scheduleResult.textContent =
+            data.message ||
+            (wantOn ? "Live schedules enabled." : "Live schedules disabled.");
+        }
+        showSuccess(
+          wantOn
+            ? "Live schedules are ON (nightly cases + Tuesday sessions)."
+            : "Live schedules are OFF.",
+        );
+      } catch (err) {
+        showError(err.message || "Could not update live schedules.");
+        try {
+          const refresh = await api("scheduleStatus");
+          renderLiveSchedules(refresh);
+        } catch (_) {
+          renderLiveSchedules({
+            configured: true,
+            enabled: liveSchedulesEnabled,
+            note: "Could not refresh schedule state.",
+          });
+        }
+      } finally {
+        liveSchedulesBusy = false;
+        if (els.scheduleToggleBtn) {
+          els.scheduleToggleBtn.disabled = false;
+        }
+        if (els.scheduleToggleLabel) {
+          els.scheduleToggleLabel.textContent = liveSchedulesEnabled
+            ? "Schedules ON"
+            : "Schedules OFF";
+        }
+      }
+    });
   }
 
   fillLiveDateDefaults();

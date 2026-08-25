@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="white-glove.css?v=20260825-live2" />
+  <link rel="stylesheet" href="white-glove.css?v=20260825-schedules1" />
 </head>
 <body class="wg-dashboard">
   <header class="wg-header">
@@ -32,6 +32,50 @@
     </p>
     <p id="errorBanner" class="wg-banner wg-banner-error" hidden></p>
     <p id="successBanner" class="wg-banner wg-banner-success" hidden></p>
+
+    <section class="wg-panel wg-panel-schedule">
+      <div class="wg-panel-head">
+        <div>
+          <h2 class="wg-panel-title">Live schedules</h2>
+          <p class="wg-panel-subtitle">EventBridge automatic runs — production HHA writes</p>
+        </div>
+        <span id="scheduleStateBadge" class="wg-badge wg-badge-schedule-off">Off</span>
+      </div>
+      <div class="wg-panel-body">
+        <div class="wg-schedule-row">
+          <div class="wg-schedule-copy">
+            <p class="wg-lead" style="margin-top:0">
+              Controls the <strong>live</strong> schedules only
+              (<code>dryRun:false</code>):
+            </p>
+            <ul class="wg-report-list wg-schedule-list">
+              <li><strong>Nightly case reports</strong> — Gluck open/closure, new &amp; discharge services (~11pm Eastern)</li>
+              <li><strong>Tuesday sessions</strong> — verified visits (API Report) + caregiver codes (~11pm Eastern)</li>
+            </ul>
+            <p class="wg-footnote">
+              Monday dry-run preview is <em>not</em> controlled by this switch.
+              Turning schedules on or off requires <strong>two</strong> confirmations.
+            </p>
+          </div>
+          <div class="wg-schedule-control">
+            <button
+              id="scheduleToggleBtn"
+              type="button"
+              class="wg-switch"
+              role="switch"
+              aria-checked="false"
+              aria-label="Live schedules"
+              disabled
+            >
+              <span class="wg-switch-track" aria-hidden="true"><span class="wg-switch-thumb"></span></span>
+              <span id="scheduleToggleLabel" class="wg-switch-label">Loading…</span>
+            </button>
+            <p id="scheduleStatusText" class="wg-schedule-status">Checking schedule state…</p>
+            <p id="scheduleResult" class="wg-sandbox-result" hidden></p>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <div class="wg-stats-row">
       <article class="wg-stat-card">
@@ -200,7 +244,7 @@
     </div>
   </div>
 
-  <script src="clients.js?v=20260825-live2"></script>
-  <script src="white-glove.js?v=20260825-live2"></script>
+  <script src="clients.js?v=20260825-schedules1"></script>
+  <script src="white-glove.js?v=20260825-schedules1"></script>
 </body>
 </html>
