@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="white-glove.css" />
+  <link rel="stylesheet" href="white-glove.css?v=20260825-live2" />
 </head>
 <body class="wg-dashboard">
   <header class="wg-header">
@@ -151,8 +151,9 @@
             Start live run
           </button>
         </div>
+        <p id="liveLocalError" class="wg-banner wg-banner-error" hidden></p>
         <p id="liveResult" class="wg-sandbox-result" hidden></p>
-        <p class="wg-footnote">Defaults to API Report + caregiver codes for visits / pay-code testing.</p>
+        <p class="wg-footnote">Defaults to API Report + caregiver codes for visits / pay-code testing. Hard-refresh (Ctrl+Shift+R) if the button does nothing.</p>
       </div>
     </section>
 
@@ -199,7 +200,7 @@
     </div>
   </div>
 
-  <script src="clients.js"></script>
-  <script src="white-glove.js"></script>
+  <script src="clients.js?v=20260825-live2"></script>
+  <script src="white-glove.js?v=20260825-live2"></script>
 </body>
 </html>

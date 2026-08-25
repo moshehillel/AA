@@ -7,3 +7,13 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Cache-Control = "no-store"
+
+# Edge rewrites /white-glove/* → /dashboard/*, but browsers request the
+# public path. Without this, white-glove.js can stay cached after a deploy
+# while HTML updates — Start live run appears but the click handler is missing.
+[[headers]]
+  for = "/white-glove/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Cache-Control = "no-store"

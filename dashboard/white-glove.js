@@ -45,6 +45,7 @@
     sandboxResult: document.getElementById("sandboxResult"),
     liveRunBtn: document.getElementById("liveRunBtn"),
     livePresetSessionsBtn: document.getElementById("livePresetSessionsBtn"),
+    liveLocalError: document.getElementById("liveLocalError"),
     liveResult: document.getElementById("liveResult"),
   };
 
@@ -481,10 +482,25 @@
     });
   }
 
+  function showLiveLocalError(msg) {
+    if (!els.liveLocalError) {
+      showError(msg);
+      return;
+    }
+    els.liveLocalError.hidden = !msg;
+    els.liveLocalError.textContent = msg || "";
+    if (msg) {
+      try {
+        els.liveLocalError.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      } catch (_) { /* ignore */ }
+    }
+  }
+
   if (els.liveRunBtn) {
     els.liveRunBtn.addEventListener("click", async function () {
       showError("");
       showSuccess("");
+      showLiveLocalError("");
       if (els.liveResult) {
         els.liveResult.hidden = true;
         els.liveResult.textContent = "";
@@ -503,9 +519,15 @@
         }
       });
       if (!reportKinds.length) {
-        showError("Select at least one report for the live run.");
+        showLiveLocalError("Select at least one report for the live run.");
         return;
       }
+
+      const confirmMsg =
+        "Start a LIVE pipeline run?\n\n" +
+        "Reports: " + reportKinds.join(", ") + "\n" +
+        "This writes to production HHA. Nightly schedules stay off.";
+      if (!window.confirm(confirmMsg)) return;
 
       els.liveRunBtn.disabled = true;
       const originalLabel = els.liveRunBtn.innerHTML;
@@ -521,19 +543,30 @@
           els.liveResult.hidden = false;
           const kinds = (data.reportKinds || reportKinds).join(", ");
           const runLine = data.runId ? "Run ID: <code>" + data.runId + "</code>. " : "";
+          const execLine = data.executionArn
+            ? " Execution: <code>" + data.executionArn.split(":").pop() + "</code>."
+            : "";
           els.liveResult.innerHTML =
             runLine +
             (data.message || "Live run started.") +
-            " Reports: <code>" + kinds + "</code>.";
+            " Reports: <code>" + kinds + "</code>." +
+            execLine;
+          try {
+            els.liveResult.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          } catch (_) { /* ignore */ }
         }
         showSuccess("Live run started (production HHA writes). Email arrives when finished.");
       } catch (err) {
-        showError(err.message || "Could not start live run.");
+        const msg = err.message || "Could not start live run.";
+        showError(msg);
+        showLiveLocalError(msg);
       } finally {
         els.liveRunBtn.disabled = false;
         els.liveRunBtn.innerHTML = originalLabel;
       }
     });
+  } else {
+    console.error("[white-glove] liveRunBtn missing — hard-refresh; cached JS may be stale.");
   }
 
   fillLiveDateDefaults();

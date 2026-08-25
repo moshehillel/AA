@@ -120,18 +120,30 @@ exports.handler = async (event) => {
     headers: {"Content-Type": "application/json"},
   };
   if (method === "POST" && event.body) {
-    init.body = event.body;
+    init.body = event.isBase64Encoded
+      ? Buffer.from(event.body, "base64").toString("utf8")
+      : event.body;
   }
 
   try {
     const res = await fetch(target.toString(), init);
     const text = await res.text();
+    if (action === "startLiveRun") {
+      console.log(
+        JSON.stringify({
+          action,
+          upstreamStatus: res.status,
+          bodyPreview: text.slice(0, 240),
+        }),
+      );
+    }
     return {
       statusCode: res.status,
       headers: jsonHeaders,
       body: text,
     };
   } catch (err) {
+    console.error("whiteGloveProxy upstream failed", action, err);
     return {
       statusCode: 502,
       headers: jsonHeaders,
