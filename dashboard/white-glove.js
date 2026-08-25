@@ -33,17 +33,87 @@
     cancelBtn: document.getElementById("mfaCancelBtn"),
     weekSummaryBtn: document.getElementById("weekSummaryBtn"),
     weekSummaryModal: document.getElementById("weekSummaryModal"),
+    weekSummaryTitle: document.getElementById("weekSummaryTitle"),
     weekSummaryRange: document.getElementById("weekSummaryRange"),
     weekSummaryError: document.getElementById("weekSummaryError"),
     weekSummaryLoading: document.getElementById("weekSummaryLoading"),
+    weekSummaryLoadingVerb: document.getElementById("weekSummaryLoadingVerb"),
     weekSummaryContent: document.getElementById("weekSummaryContent"),
     weekSummaryStats: document.getElementById("weekSummaryStats"),
     weekSummaryNote: document.getElementById("weekSummaryNote"),
     sandboxRunBtn: document.getElementById("sandboxRunBtn"),
     sandboxResult: document.getElementById("sandboxResult"),
+    liveRunBtn: document.getElementById("liveRunBtn"),
+    livePresetSessionsBtn: document.getElementById("livePresetSessionsBtn"),
+    liveResult: document.getElementById("liveResult"),
   };
 
   let pendingSessionId = null;
+  let weekLoadingTimer = null;
+  let weekLoadingIndex = 0;
+
+  const WEEK_LOADING_VERBS = [
+    "Thinking",
+    "Calculating",
+    "Looking",
+    "Writing",
+    "Making",
+    "Cooking",
+    "Sorting",
+    "Counting",
+    "Checking",
+    "Gathering",
+    "Tallying",
+    "Compiling",
+  ];
+
+  function easternYmd(date) {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  }
+
+  function weekSummaryHeading(windowInfo) {
+    const startDate = windowInfo && windowInfo.startDate;
+    const endDate = windowInfo && windowInfo.endDate;
+    if (!startDate || !endDate) return "Week summary";
+    const today = easternYmd(new Date());
+    if (today > endDate) return "Last week summary";
+    if (today < startDate) return "Upcoming week summary";
+    return "This week summary";
+  }
+
+  function stopWeekLoadingAnimation() {
+    if (weekLoadingTimer) {
+      clearInterval(weekLoadingTimer);
+      weekLoadingTimer = null;
+    }
+    if (els.weekSummaryLoadingVerb) {
+      els.weekSummaryLoadingVerb.classList.remove("is-fading");
+    }
+  }
+
+  function startWeekLoadingAnimation() {
+    stopWeekLoadingAnimation();
+    weekLoadingIndex = 0;
+    if (els.weekSummaryLoadingVerb) {
+      els.weekSummaryLoadingVerb.textContent = WEEK_LOADING_VERBS[0];
+      els.weekSummaryLoadingVerb.classList.remove("is-fading");
+    }
+    weekLoadingTimer = setInterval(function () {
+      if (!els.weekSummaryLoadingVerb) return;
+      const verbEl = els.weekSummaryLoadingVerb;
+      verbEl.classList.add("is-fading");
+      setTimeout(function () {
+        weekLoadingIndex = (weekLoadingIndex + 1) % WEEK_LOADING_VERBS.length;
+        verbEl.textContent = WEEK_LOADING_VERBS[weekLoadingIndex];
+        verbEl.classList.remove("is-fading");
+      }, 220);
+    }, 1100);
+  }
 
   function showError(msg) {
     els.errorBanner.hidden = !msg;
@@ -134,6 +204,12 @@
         els.sandboxRunBtn.title = "Sandbox trigger is not configured on AWS yet.";
       }
     }
+    if (els.liveRunBtn) {
+      els.liveRunBtn.disabled = data.liveRunConfigured === false;
+      if (data.liveRunConfigured === false) {
+        els.liveRunBtn.title = "Live run is not configured on AWS yet (STATE_MACHINE_ARN).";
+      }
+    }
   }
 
   async function loadStatus() {
@@ -203,6 +279,7 @@
   function closeWeekSummaryModal() {
     if (!els.weekSummaryModal) return;
     els.weekSummaryModal.hidden = true;
+    stopWeekLoadingAnimation();
   }
 
   function openWeekSummaryModal() {
@@ -223,12 +300,16 @@
   function renderWeekSummary(data) {
     const counts = data.counts || {};
     const windowInfo = data.window || {};
+    stopWeekLoadingAnimation();
+    if (els.weekSummaryTitle) {
+      els.weekSummaryTitle.textContent = weekSummaryHeading(windowInfo);
+    }
     if (els.weekSummaryRange) {
       els.weekSummaryRange.textContent =
         windowInfo.label ||
         (windowInfo.startDate && windowInfo.endDate
           ? `${windowInfo.startDate} – ${windowInfo.endDate}`
-          : "Last completed week");
+          : "Mon–Sun Eastern ops week");
     }
     if (els.weekSummaryStats) {
       els.weekSummaryStats.innerHTML = [
@@ -253,6 +334,11 @@
       if ((counts.runsIncluded ?? 0) === 0) {
         parts.push("No completed pipeline runs were found for this window.");
       }
+      if (Array.isArray(data.runIds) && data.runIds.length) {
+        parts.push(
+          "Includes validate-summary.json for run(s): " + data.runIds.join(", ") + ".",
+        );
+      }
       if (data.summariesScanned != null) {
         parts.push("Scanned " + data.summariesScanned + " run summary file(s).");
       }
@@ -267,19 +353,22 @@
       els.weekSummaryError.hidden = true;
       els.weekSummaryError.textContent = "";
     }
+    if (els.weekSummaryTitle) els.weekSummaryTitle.textContent = "Week summary";
     if (els.weekSummaryLoading) els.weekSummaryLoading.hidden = false;
     if (els.weekSummaryContent) els.weekSummaryContent.hidden = true;
-    if (els.weekSummaryRange) els.weekSummaryRange.textContent = "Loading…";
+    if (els.weekSummaryRange) els.weekSummaryRange.textContent = "Fetching pipeline counts…";
+    startWeekLoadingAnimation();
 
     try {
       const data = await api("weekSummary");
       renderWeekSummary(data);
     } catch (err) {
+      stopWeekLoadingAnimation();
       if (els.weekSummaryLoading) els.weekSummaryLoading.hidden = true;
       if (els.weekSummaryError) {
         els.weekSummaryError.hidden = false;
         els.weekSummaryError.textContent =
-          err.message || "Could not load last week summary.";
+          err.message || "Could not load week summary.";
       }
       if (els.weekSummaryRange) els.weekSummaryRange.textContent = "Unavailable";
     }
@@ -336,5 +425,117 @@
     });
   }
 
+  function isoDate(d) {
+    return d.toISOString().slice(0, 10);
+  }
+
+  function easternBusinessDate() {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    }).formatToParts(new Date());
+    const g = function (t) { return Number(parts.find(function (p) { return p.type === t; }).value); };
+    return new Date(Date.UTC(g("year"), g("month") - 1, g("day")));
+  }
+
+  function addUtcDays(d, n) {
+    const x = new Date(d.getTime());
+    x.setUTCDate(x.getUTCDate() + n);
+    return x;
+  }
+
+  function tueMonRange(business) {
+    const dow = business.getUTCDay();
+    const daysSinceTue = (dow + 5) % 7;
+    const from = addUtcDays(business, -daysSinceTue);
+    return { from: isoDate(from), to: isoDate(addUtcDays(from, 6)) };
+  }
+
+  function fillLiveDateDefaults() {
+    const today = easternBusinessDate();
+    const todayIso = isoDate(today);
+    const sessions = tueMonRange(today);
+    const map = {
+      opened_cases: [todayIso, todayIso],
+      closed_cases: [todayIso, todayIso],
+      discharge_service: [todayIso, todayIso],
+      new_services: [isoDate(addUtcDays(today, -14)), todayIso],
+      verified_sessions: [sessions.from, sessions.to],
+    };
+    Object.keys(map).forEach(function (kind) {
+      const fromEl = document.querySelector('input[data-from="' + kind + '"]');
+      const toEl = document.querySelector('input[data-to="' + kind + '"]');
+      if (fromEl && !fromEl.value) fromEl.value = map[kind][0];
+      if (toEl && !toEl.value) toEl.value = map[kind][1];
+    });
+  }
+
+  if (els.livePresetSessionsBtn) {
+    els.livePresetSessionsBtn.addEventListener("click", function () {
+      document.querySelectorAll("#liveReports input[data-kind]").forEach(function (cb) {
+        const kind = cb.getAttribute("data-kind");
+        cb.checked = kind === "verified_sessions" || kind === "caregiver_codes";
+      });
+    });
+  }
+
+  if (els.liveRunBtn) {
+    els.liveRunBtn.addEventListener("click", async function () {
+      showError("");
+      showSuccess("");
+      if (els.liveResult) {
+        els.liveResult.hidden = true;
+        els.liveResult.textContent = "";
+      }
+
+      const reportKinds = [];
+      const dateRanges = {};
+      document.querySelectorAll("#liveReports input[data-kind]").forEach(function (cb) {
+        if (!cb.checked) return;
+        const kind = cb.getAttribute("data-kind");
+        reportKinds.push(kind);
+        const fromEl = document.querySelector('input[data-from="' + kind + '"]');
+        const toEl = document.querySelector('input[data-to="' + kind + '"]');
+        if (fromEl && toEl && fromEl.value && toEl.value) {
+          dateRanges[kind] = { from: fromEl.value, to: toEl.value };
+        }
+      });
+      if (!reportKinds.length) {
+        showError("Select at least one report for the live run.");
+        return;
+      }
+
+      els.liveRunBtn.disabled = true;
+      const originalLabel = els.liveRunBtn.innerHTML;
+      els.liveRunBtn.innerHTML =
+        '<span class="wg-btn-icon" aria-hidden="true">…</span> Starting live run…';
+
+      try {
+        const data = await api("startLiveRun", {
+          method: "POST",
+          body: { confirm: "LIVE", reportKinds: reportKinds, dateRanges: dateRanges },
+        });
+        if (els.liveResult) {
+          els.liveResult.hidden = false;
+          const kinds = (data.reportKinds || reportKinds).join(", ");
+          const runLine = data.runId ? "Run ID: <code>" + data.runId + "</code>. " : "";
+          els.liveResult.innerHTML =
+            runLine +
+            (data.message || "Live run started.") +
+            " Reports: <code>" + kinds + "</code>.";
+        }
+        showSuccess("Live run started (production HHA writes). Email arrives when finished.");
+      } catch (err) {
+        showError(err.message || "Could not start live run.");
+      } finally {
+        els.liveRunBtn.disabled = false;
+        els.liveRunBtn.innerHTML = originalLabel;
+      }
+    });
+  }
+
+  fillLiveDateDefaults();
   loadStatus();
 })();

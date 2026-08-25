@@ -117,16 +117,55 @@
       </section>
     </div>
 
+    <section class="wg-panel wg-panel-live">
+      <div class="wg-panel-head">
+        <div>
+          <h2 class="wg-panel-title">Test live</h2>
+          <p class="wg-panel-subtitle">Production HHA writes — pick reports and dates</p>
+        </div>
+        <span class="wg-badge wg-badge-live">Live</span>
+      </div>
+      <div class="wg-panel-body">
+        <p class="wg-lead">
+          Starts a <strong>live</strong> pipeline run (<code>dryRun=false</code>, <code>sandbox=false</code>)
+          with only the reports you select. Does <em>not</em> enable nightly EventBridge schedules.
+        </p>
+        <div class="wg-live-reports" id="liveReports">
+          <label class="wg-live-row"><input type="checkbox" data-kind="opened_cases" /> <span class="wg-live-label"><strong>Gluck open</strong> <span class="wg-muted">(Date of Intake)</span></span>
+            <span class="wg-live-dates">From <input type="date" data-from="opened_cases" /> To <input type="date" data-to="opened_cases" /></span></label>
+          <label class="wg-live-row"><input type="checkbox" data-kind="new_services" /> <span class="wg-live-label"><strong>New services</strong> <span class="wg-muted">(Service Begin)</span></span>
+            <span class="wg-live-dates">From <input type="date" data-from="new_services" /> To <input type="date" data-to="new_services" /></span></label>
+          <label class="wg-live-row"><input type="checkbox" data-kind="closed_cases" /> <span class="wg-live-label"><strong>Gluck closure</strong> <span class="wg-muted">(Closure Date)</span></span>
+            <span class="wg-live-dates">From <input type="date" data-from="closed_cases" /> To <input type="date" data-to="closed_cases" /></span></label>
+          <label class="wg-live-row"><input type="checkbox" data-kind="discharge_service" /> <span class="wg-live-label"><strong>Discharge service</strong></span>
+            <span class="wg-live-dates">From <input type="date" data-from="discharge_service" /> To <input type="date" data-to="discharge_service" /></span></label>
+          <label class="wg-live-row"><input type="checkbox" data-kind="verified_sessions" checked /> <span class="wg-live-label"><strong>API Report</strong> <span class="wg-muted">(Verified Date — visits)</span></span>
+            <span class="wg-live-dates">From <input type="date" data-from="verified_sessions" /> To <input type="date" data-to="verified_sessions" /></span></label>
+          <label class="wg-live-row"><input type="checkbox" data-kind="caregiver_codes" checked /> <span class="wg-live-label"><strong>Caregiver codes</strong> <span class="wg-muted">(reference — dates ignored)</span></span>
+            <span class="wg-live-dates wg-muted">No date filter</span></label>
+        </div>
+        <div class="wg-action-row wg-live-actions">
+          <button id="livePresetSessionsBtn" type="button" class="wg-btn wg-btn-ghost">Preset: sessions only</button>
+          <button id="liveRunBtn" type="button" class="wg-btn wg-btn-live">
+            <span class="wg-btn-icon" aria-hidden="true">▶</span>
+            Start live run
+          </button>
+        </div>
+        <p id="liveResult" class="wg-sandbox-result" hidden></p>
+        <p class="wg-footnote">Defaults to API Report + caregiver codes for visits / pay-code testing.</p>
+      </div>
+    </section>
+
     <section class="wg-panel wg-panel-compact">
       <div class="wg-panel-head">
         <div>
           <h2 class="wg-panel-title">Pipeline results</h2>
-          <p class="wg-panel-subtitle">Aggregated counts from last completed week</p>
+          <p class="wg-panel-subtitle">Mon–Sun Eastern week anchored on yesterday (ops week in progress or just closed)</p>
         </div>
       </div>
       <div class="wg-panel-body wg-links-row">
         <button id="weekSummaryBtn" type="button" class="wg-link-btn">
-          View last week summary
+          View week summary
         </button>
       </div>
     </section>
@@ -137,8 +176,8 @@
     <div class="wg-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="weekSummaryTitle">
       <div class="wg-modal-head">
         <div>
-          <h2 id="weekSummaryTitle" class="wg-panel-title">Last week summary</h2>
-          <p id="weekSummaryRange" class="wg-panel-subtitle">Loading…</p>
+          <h2 id="weekSummaryTitle" class="wg-panel-title">Week summary</h2>
+          <p id="weekSummaryRange" class="wg-panel-subtitle">Preparing…</p>
         </div>
         <button type="button" class="wg-btn wg-btn-ghost wg-modal-close" data-close-week-summary aria-label="Close">
           Close
@@ -146,7 +185,12 @@
       </div>
       <div class="wg-modal-body">
         <p id="weekSummaryError" class="wg-banner wg-banner-error" hidden></p>
-        <p id="weekSummaryLoading" class="wg-lead">Loading pipeline counts…</p>
+        <div id="weekSummaryLoading" class="wg-week-loading" hidden>
+          <div class="wg-week-spinner" aria-hidden="true"></div>
+          <p class="wg-week-loading-text" aria-live="polite">
+            <span id="weekSummaryLoadingVerb">Calculating</span><span class="wg-week-loading-dots" aria-hidden="true"></span>
+          </p>
+        </div>
         <div id="weekSummaryContent" hidden>
           <div id="weekSummaryStats" class="wg-week-stats"></div>
           <p id="weekSummaryNote" class="wg-footnote"></p>
