@@ -574,6 +574,7 @@
 
       const reportKinds = [];
       const dateRanges = {};
+      const swappedKinds = [];
       document.querySelectorAll("#liveReports input[data-kind]").forEach(function (cb) {
         if (!cb.checked) return;
         const kind = cb.getAttribute("data-kind");
@@ -581,11 +582,28 @@
         const fromEl = document.querySelector('input[data-from="' + kind + '"]');
         const toEl = document.querySelector('input[data-to="' + kind + '"]');
         if (fromEl && toEl && fromEl.value && toEl.value) {
-          dateRanges[kind] = { from: fromEl.value, to: toEl.value };
+          var from = fromEl.value;
+          var to = toEl.value;
+          if (from > to) {
+            fromEl.value = to;
+            toEl.value = from;
+            from = fromEl.value;
+            to = toEl.value;
+            swappedKinds.push(kind);
+          }
+          dateRanges[kind] = { from: from, to: to };
         }
       });
       if (!reportKinds.length) {
         showLiveLocalError("Select at least one report for the live run.");
+        return;
+      }
+      if (swappedKinds.length) {
+        showLiveLocalError(
+          "From date was after To for: " +
+            swappedKinds.join(", ") +
+            ". Dates were corrected in the form — review them and click Start live run again.",
+        );
         return;
       }
 
