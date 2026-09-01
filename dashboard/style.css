@@ -564,6 +564,11 @@ main {
   color: #fff;
 }
 
+.range-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

@@ -59,6 +59,28 @@
   const INVOICE_PAGE_SIZE = 20;
   let invoiceOffset = 0;
   let invoiceHasMore = false;
+  let statsInFlight = null;
+  let invoicesInFlight = null;
+
+  function setButtonBusy(btn, busy, busyText, idleText) {
+    if (!btn) return;
+    if (busy) {
+      if (!btn.dataset.idleText) {
+        btn.dataset.idleText = idleText || btn.textContent;
+      }
+      btn.disabled = true;
+      if (busyText) btn.textContent = busyText;
+    } else {
+      btn.disabled = false;
+      btn.textContent = btn.dataset.idleText || idleText || btn.textContent;
+    }
+  }
+
+  function setRangeButtonsDisabled(disabled) {
+    els.rangeBtns.forEach((btn) => {
+      btn.disabled = disabled;
+    });
+  }
 
   // TMS badge + tenant label
   if (els.tmsBadge) {
@@ -96,7 +118,7 @@
       showError("Pick a date to export.");
       return;
     }
-    els.exportLogsCsvBtn.disabled = true;
+    setButtonBusy(els.exportLogsCsvBtn, true, "Exporting…");
     showError("");
     try {
       const url =
@@ -127,7 +149,7 @@
       showError(error.message || "Could not export logs.");
       console.error("exportLogsCsvForSelectedDay failed:", error);
     } finally {
-      els.exportLogsCsvBtn.disabled = false;
+      setButtonBusy(els.exportLogsCsvBtn, false);
     }
   }
 
@@ -270,7 +292,7 @@
         const card = btn.closest(".task-card");
         const taskId = card.dataset.id;
         const source = card.dataset.source;
-        btn.disabled = true;
+        setButtonBusy(btn, true, "Dismissing…");
         try {
           await postJson("/dismissDashboardTask", {taskId, source});
           card.remove();
@@ -284,7 +306,7 @@
           }
         } catch (error) {
           showError("Could not dismiss task. Please try again.");
-          btn.disabled = false;
+          setButtonBusy(btn, false);
           console.error("dismissTask failed:", error);
         }
       });
@@ -306,7 +328,8 @@
   }
 
   function buildInvoiceRow(inv) {
-    const status = inv.finalWorkflowStatus || inv.decisionStage || "—";
+    const status = inv.displayLabel || inv.displayStatus ||
+      inv.finalWorkflowStatus || inv.decisionStage || "—";
     const taiCol = TMS === "tai" ?
       `<td>${inv.taiShipmentId || "—"}</td>` : "";
     return `<tr>
@@ -373,42 +396,66 @@
   }
 
   async function loadInvoices({reset = true} = {}) {
-    if (reset) {
-      invoiceOffset = 0;
-      invoiceHasMore = false;
-      els.refreshInvoicesBtn.disabled = true;
-      updateLoadMoreButton(false);
-      els.invoicesContainer.innerHTML =
-        '<p class="panel-empty">thinking</p>';
-    } else if (els.loadMoreInvoicesBtn) {
-      updateLoadMoreButton(true);
+    if (invoicesInFlight) {
+      try {
+        await invoicesInFlight;
+      } catch (_) {
+        /* surfaced below */
+      }
+      if (!reset) return;
     }
 
-    try {
-      const data = await fetchJson(
-          `/getRecentInvoices?limit=${INVOICE_PAGE_SIZE}&offset=${invoiceOffset}`,
-      );
-      const invoices = data.invoices || [];
-      invoiceHasMore = data.hasMore === true;
-      invoiceOffset += invoices.length;
-
+    invoicesInFlight = (async () => {
       if (reset) {
-        renderInvoices(invoices);
-      } else {
-        appendInvoices(invoices);
-      }
-    } catch (error) {
-      if (reset) {
-        els.invoicesContainer.innerHTML =
-          '<p class="panel-empty">Could not load invoices.</p>';
+        invoiceOffset = 0;
         invoiceHasMore = false;
-      } else {
-        showError("Could not load more invoices. Please try again.");
+        setButtonBusy(els.refreshInvoicesBtn, true, "Refreshing…");
+        updateLoadMoreButton(false);
+        els.invoicesContainer.innerHTML =
+          '<p class="panel-empty">thinking</p>';
+      } else if (els.loadMoreInvoicesBtn) {
+        updateLoadMoreButton(true);
       }
-      console.error("loadInvoices failed:", error);
-      updateLoadMoreButton(false);
+
+      try {
+        const data = await fetchJson(
+            `/getRecentInvoices?limit=${INVOICE_PAGE_SIZE}&offset=${invoiceOffset}`,
+        );
+        const invoices = data.invoices || [];
+        invoiceHasMore = typeof data.hasMore === "boolean" ?
+          data.hasMore :
+          invoices.length === INVOICE_PAGE_SIZE;
+        invoiceOffset += invoices.length;
+
+        if (reset) {
+          renderInvoices(invoices);
+        } else {
+          appendInvoices(invoices);
+        }
+      } catch (error) {
+        if (reset) {
+          els.invoicesContainer.innerHTML =
+            '<p class="panel-empty">Could not load invoices.</p>';
+          invoiceHasMore = false;
+        } else {
+          showError("Could not load more invoices. Please try again.");
+        }
+        console.error("loadInvoices failed:", error);
+        updateLoadMoreButton(false);
+        throw error;
+      } finally {
+        if (reset) {
+          setButtonBusy(els.refreshInvoicesBtn, false);
+        } else {
+          updateLoadMoreButton(false);
+        }
+      }
+    })();
+
+    try {
+      await invoicesInFlight;
     } finally {
-      els.refreshInvoicesBtn.disabled = false;
+      invoicesInFlight = null;
     }
   }
 
@@ -505,31 +552,50 @@
   }
 
   async function loadStats(range) {
-    showError(null);
-    setStatsThinking(true);
+    if (statsInFlight) {
+      return statsInFlight;
+    }
+
+    statsInFlight = (async () => {
+      showError(null);
+      setStatsThinking(true);
+      setRangeButtonsDisabled(true);
+      try {
+        const data = await fetchJson(`/getDashboardStats?range=${range}`);
+        statsTotals = data.totals || null;
+        setStatsThinking(false);
+        els.statInvoices.textContent = data.totals.invoicesProcessed ?? "–";
+        if (els.statWorkflows) {
+          els.statWorkflows.textContent = data.totals.workflowsCompleted ?? "–";
+        }
+        if (els.statAddedCharges) {
+          els.statAddedCharges.textContent =
+            data.totals.invoicesWithAddedCharges ?? "–";
+        }
+        els.statReplied.textContent = data.totals.emailsReplied ?? "–";
+        els.statForwarded.textContent = data.totals.emailsForwarded ?? "–";
+        renderChart(data.series, range);
+      } catch (error) {
+        setStatsThinking(false);
+        console.error("loadStats failed:", error);
+        showError("Couldn't load dashboard stats. Please try again shortly.");
+        throw error;
+      } finally {
+        setRangeButtonsDisabled(false);
+      }
+    })();
+
     try {
-      const data = await fetchJson(`/getDashboardStats?range=${range}`);
-      statsTotals = data.totals || null;
-      setStatsThinking(false);
-      els.statInvoices.textContent = data.totals.invoicesProcessed ?? "–";
-      if (els.statWorkflows) {
-        els.statWorkflows.textContent = data.totals.workflowsCompleted ?? "–";
-      }
-      if (els.statAddedCharges) {
-        els.statAddedCharges.textContent =
-          data.totals.invoicesWithAddedCharges ?? "–";
-      }
-      els.statReplied.textContent = data.totals.emailsReplied ?? "–";
-      els.statForwarded.textContent = data.totals.emailsForwarded ?? "–";
-      renderChart(data.series, range);
-    } catch (error) {
-      setStatsThinking(false);
-      console.error("loadStats failed:", error);
-      showError("Couldn't load dashboard stats. Please try again shortly.");
+      return await statsInFlight;
+    } finally {
+      statsInFlight = null;
     }
   }
 
   function setActiveRange(range) {
+    if (range === activeRange && statsInFlight) {
+      return;
+    }
     activeRange = range;
     els.rangeBtns.forEach((btn) => {
       btn.classList.toggle("is-active", btn.dataset.range === range);
@@ -538,17 +604,22 @@
   }
 
   els.rangeBtns.forEach((btn) => {
-    btn.addEventListener("click", () => setActiveRange(btn.dataset.range));
+    btn.addEventListener("click", () => {
+      if (btn.disabled) return;
+      setActiveRange(btn.dataset.range);
+    });
   });
 
   els.connectBtn.addEventListener("click", () => {
+    if (els.connectBtn.disabled) return;
+    setButtonBusy(els.connectBtn, true, "Connecting…");
     window.location.href =
       `${BASE_URL}/mailConnect?${tenantQuery}`;
   });
 
   els.disconnectBtn.addEventListener("click", async () => {
     if (!confirm("Disconnect Outlook? The system will stop processing emails until you reconnect.")) return;
-    els.disconnectBtn.disabled = true;
+    setButtonBusy(els.disconnectBtn, true, "Disconnecting…");
     try {
       const data = await postJson("/mailDisconnect");
       if (data.ok) {
@@ -560,7 +631,7 @@
     } catch (error) {
       showRunResult("Could not reach the server.", true);
     } finally {
-      els.disconnectBtn.disabled = false;
+      setButtonBusy(els.disconnectBtn, false);
     }
   });
 
