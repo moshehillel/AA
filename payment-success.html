@@ -55,15 +55,83 @@
       box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
     }
 
-    .success-icon {
-      font-size: 4rem;
-      margin-bottom: 1rem;
-      animation: bounce 1s ease-in-out infinite;
+    .check-animation {
+      width: 200px;
+      height: 120px;
+      margin: 0 auto 2rem;
+      position: relative;
     }
 
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
+    .check-document {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .check-lines {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+    }
+
+    .check-line {
+      height: 8px;
+      background: #dee2e6;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+
+    .check-line.short {
+      width: 40%;
+    }
+
+    .check-line.medium {
+      width: 60%;
+    }
+
+    .check-line.long {
+      width: 80%;
+    }
+
+    .check-mark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 5rem;
+      color: #16a34a;
+      opacity: 0;
+      animation: printCheck 2.5s ease-in-out infinite;
+      font-weight: bold;
+      text-shadow: 0 4px 20px rgba(22, 163, 74, 0.4);
+    }
+
+    @keyframes printCheck {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0) rotate(-10deg);
+      }
+      50% {
+        opacity: 0.5;
+        transform: translate(-50%, -50%) scale(0.5) rotate(-5deg);
+      }
+      70% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1) rotate(2deg);
+      }
+      85% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+      }
     }
 
     h1 {
@@ -161,7 +229,17 @@
 <body>
   <div class="success-container">
     <img src="Images/jerry-robot-signature.png" alt="AI Assistant" class="ai-image">
-    <div class="success-icon">🎉</div>
+    <div class="check-animation">
+      <div class="check-document">
+        <div class="check-lines">
+          <div class="check-line short"></div>
+          <div class="check-line medium"></div>
+          <div class="check-line long"></div>
+          <div class="check-line medium"></div>
+        </div>
+        <div class="check-mark">✓</div>
+      </div>
+    </div>
     <h1>Payment Successful!</h1>
     <p class="message">
       <strong>You're all set — your AI-powered experience is now unlocked.</strong> Start exploring smarter, faster, and more powerful tools today.
