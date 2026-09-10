@@ -511,6 +511,17 @@
     
     // Initialize page
     function init() {
+      // Check if returning from Stripe checkout
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('success') === 'true') {
+        window.location.href = 'payment-success.html';
+        return;
+      }
+      if (urlParams.get('canceled') === 'true') {
+        window.location.href = 'payment-failed.html';
+        return;
+      }
+
       if (!amountParam) {
         showError('Missing amount parameter. Please provide ?amount=XXXXXX');
         return;

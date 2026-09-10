@@ -657,11 +657,28 @@ body.wg-dashboard {
   background: #065f46;
   color: #a7f3d0;
 }
+.wg-schedule-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.wg-schedule-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
 .wg-schedule-row {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 1.25rem;
   align-items: start;
+  padding: 1rem 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+}
+.wg-schedule-stack .wg-schedule-row:first-child {
+  border-top: 0;
+  padding-top: 0.25rem;
 }
 .wg-schedule-list {
   margin: 0.5rem 0 0.75rem;
@@ -725,6 +742,10 @@ body.wg-dashboard {
   color: var(--wg-muted);
   max-width: 220px;
   line-height: 1.35;
+}
+.wg-badge-schedule-partial {
+  background: #92400e;
+  color: #fde68a;
 }
 
 @media (max-width: 768px) {

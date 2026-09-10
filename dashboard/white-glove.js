@@ -44,18 +44,23 @@
     sandboxRunBtn: document.getElementById("sandboxRunBtn"),
     sandboxResult: document.getElementById("sandboxResult"),
     liveRunBtn: document.getElementById("liveRunBtn"),
+    livePresetCasesBtn: document.getElementById("livePresetCasesBtn"),
     livePresetSessionsBtn: document.getElementById("livePresetSessionsBtn"),
     liveLocalError: document.getElementById("liveLocalError"),
     liveResult: document.getElementById("liveResult"),
-    scheduleToggleBtn: document.getElementById("scheduleToggleBtn"),
-    scheduleToggleLabel: document.getElementById("scheduleToggleLabel"),
+    casesScheduleToggleBtn: document.getElementById("casesScheduleToggleBtn"),
+    casesScheduleToggleLabel: document.getElementById("casesScheduleToggleLabel"),
+    casesScheduleStatusText: document.getElementById("casesScheduleStatusText"),
+    sessionsScheduleToggleBtn: document.getElementById("sessionsScheduleToggleBtn"),
+    sessionsScheduleToggleLabel: document.getElementById("sessionsScheduleToggleLabel"),
+    sessionsScheduleStatusText: document.getElementById("sessionsScheduleStatusText"),
     scheduleStateBadge: document.getElementById("scheduleStateBadge"),
-    scheduleStatusText: document.getElementById("scheduleStatusText"),
     scheduleResult: document.getElementById("scheduleResult"),
   };
 
   let pendingSessionId = null;
-  let liveSchedulesEnabled = false;
+  let nightlyCasesEnabled = false;
+  let tuesdaySessionsEnabled = false;
   let liveSchedulesBusy = false;
   let weekLoadingTimer = null;
   let weekLoadingIndex = 0;
@@ -158,57 +163,99 @@
     return data;
   }
 
-  function renderLiveSchedules(liveSchedules) {
-    const ls = liveSchedules || {};
-    liveSchedulesEnabled = Boolean(ls.enabled);
-
-    if (els.scheduleStateBadge) {
-      els.scheduleStateBadge.textContent = liveSchedulesEnabled ? "On" : "Off";
-      els.scheduleStateBadge.classList.toggle("wg-badge-schedule-on", liveSchedulesEnabled);
-      els.scheduleStateBadge.classList.toggle("wg-badge-schedule-off", !liveSchedulesEnabled);
+  function ruleEnabled(ls, id) {
+    if (id === "nightly_cases" && typeof ls.nightlyCasesEnabled === "boolean") {
+      return ls.nightlyCasesEnabled;
     }
-
-    if (els.scheduleToggleBtn) {
-      els.scheduleToggleBtn.disabled = ls.configured === false || liveSchedulesBusy;
-      els.scheduleToggleBtn.setAttribute("aria-checked", liveSchedulesEnabled ? "true" : "false");
-      els.scheduleToggleBtn.classList.toggle("wg-switch-on", liveSchedulesEnabled);
-      if (ls.configured === false) {
-        els.scheduleToggleBtn.title = "Live schedule rules are not configured on AWS yet.";
-      } else {
-        els.scheduleToggleBtn.title = "";
-      }
+    if (id === "tuesday_sessions" && typeof ls.tuesdaySessionsEnabled === "boolean") {
+      return ls.tuesdaySessionsEnabled;
     }
+    const rules = Array.isArray(ls.rules) ? ls.rules : [];
+    const hit = rules.find(function (r) { return r.id === id; });
+    return hit ? hit.state === "ENABLED" : false;
+  }
 
-    if (els.scheduleToggleLabel) {
-      els.scheduleToggleLabel.textContent = liveSchedulesEnabled
-        ? "Schedules ON"
-        : "Schedules OFF";
+  function renderOneScheduleSwitch(btn, labelEl, statusEl, enabled, configured, busy, onText, offText, detail) {
+    if (btn) {
+      btn.disabled = configured === false || busy;
+      btn.setAttribute("aria-checked", enabled ? "true" : "false");
+      btn.classList.toggle("wg-switch-on", enabled);
+      btn.title = configured === false
+        ? "Live schedule rules are not configured on AWS yet."
+        : "";
     }
-
-    if (els.scheduleStatusText) {
-      els.scheduleStatusText.textContent =
-        ls.note ||
-        (ls.configured === false
-          ? "Schedule toggle not available until AWS deploy finishes."
-          : liveSchedulesEnabled
-            ? "Nightly cases + Tuesday sessions are enabled."
-            : "Nightly cases + Tuesday sessions are disabled.");
+    if (labelEl) labelEl.textContent = enabled ? onText : offText;
+    if (statusEl) {
+      statusEl.textContent = configured === false
+        ? "Not configured yet."
+        : (detail || (enabled ? onText : offText));
     }
   }
 
-  function doubleConfirmScheduleChange(wantOn) {
-    const rulesBlurb =
-      "Nightly case reports (Gluck open/closure, new & discharge) and Tuesday sessions (verified visits + caregiver codes).\n\n" +
-      "Monday dry-run preview is NOT changed.";
+  function renderLiveSchedules(liveSchedules) {
+    const ls = liveSchedules || {};
+    nightlyCasesEnabled = ruleEnabled(ls, "nightly_cases");
+    tuesdaySessionsEnabled = ruleEnabled(ls, "tuesday_sessions");
+    const configured = ls.configured !== false;
+    const bothOn = nightlyCasesEnabled && tuesdaySessionsEnabled;
+    const anyOn = nightlyCasesEnabled || tuesdaySessionsEnabled;
+
+    if (els.scheduleStateBadge) {
+      els.scheduleStateBadge.textContent = bothOn
+        ? "Both on"
+        : nightlyCasesEnabled
+          ? "Cases on"
+          : tuesdaySessionsEnabled
+            ? "API on"
+            : "Both off";
+      els.scheduleStateBadge.classList.toggle("wg-badge-schedule-on", bothOn);
+      els.scheduleStateBadge.classList.toggle("wg-badge-schedule-partial", anyOn && !bothOn);
+      els.scheduleStateBadge.classList.toggle("wg-badge-schedule-off", !anyOn);
+    }
+
+    renderOneScheduleSwitch(
+      els.casesScheduleToggleBtn,
+      els.casesScheduleToggleLabel,
+      els.casesScheduleStatusText,
+      nightlyCasesEnabled,
+      configured,
+      liveSchedulesBusy,
+      "Cases ON",
+      "Cases OFF",
+      nightlyCasesEnabled
+        ? "Nightly Gluck/new/discharge (~5pm Eastern)."
+        : "Cases schedule is off.",
+    );
+    renderOneScheduleSwitch(
+      els.sessionsScheduleToggleBtn,
+      els.sessionsScheduleToggleLabel,
+      els.sessionsScheduleStatusText,
+      tuesdaySessionsEnabled,
+      configured,
+      liveSchedulesBusy,
+      "API ON",
+      "API OFF",
+      tuesdaySessionsEnabled
+        ? "Tuesday API Report + caregiver codes (~11pm Eastern)."
+        : "API/sessions schedule is off.",
+    );
+  }
+
+  function doubleConfirmScheduleChange(wantOn, scheduleId) {
+    const isCases = scheduleId === "nightly_cases";
+    const title = isCases ? "Live cases schedule" : "API / sessions schedule";
+    const detail = isCases
+      ? "Nightly Gluck open/closure, new & discharge (~5pm Eastern). Does NOT include API Report."
+      : "Tuesday verified visits (API Report) + caregiver codes (~11pm Eastern).";
 
     const first = wantOn
-      ? "Turn LIVE schedules ON? (1 of 2)\n\nThis enables automatic production HHA writes:\n" + rulesBlurb
-      : "Turn LIVE schedules OFF? (1 of 2)\n\nThis disables automatic production runs:\n" + rulesBlurb;
+      ? "Turn ON: " + title + "? (1 of 2)\n\n" + detail + "\n\nMonday dry-run preview is NOT changed."
+      : "Turn OFF: " + title + "? (1 of 2)\n\n" + detail + "\n\nThe other schedule is unchanged.";
     if (!window.confirm(first)) return false;
 
     const second = wantOn
-      ? "Final confirmation (2 of 2): ENABLE live EventBridge schedules?\n\nNightly cases + Tuesday sessions will run on schedule with dryRun:false."
-      : "Final confirmation (2 of 2): DISABLE live EventBridge schedules?\n\nNightly cases + Tuesday sessions will stop until turned back on.";
+      ? "Final confirmation (2 of 2): ENABLE " + title + "?\n\nThis starts automatic production HHA writes for that schedule only."
+      : "Final confirmation (2 of 2): DISABLE " + title + "?";
     return window.confirm(second);
   }
 
@@ -548,6 +595,22 @@
     });
   }
 
+  if (els.livePresetCasesBtn) {
+    els.livePresetCasesBtn.addEventListener("click", function () {
+      const caseKinds = {
+        opened_cases: true,
+        new_services: true,
+        closed_cases: true,
+        discharge_service: true,
+        caregiver_codes: true,
+      };
+      document.querySelectorAll("#liveReports input[data-kind]").forEach(function (cb) {
+        const kind = cb.getAttribute("data-kind");
+        cb.checked = !!caseKinds[kind];
+      });
+    });
+  }
+
   function showLiveLocalError(msg) {
     if (!els.liveLocalError) {
       showError(msg);
@@ -653,68 +716,91 @@
     console.error("[white-glove] liveRunBtn missing — hard-refresh; cached JS may be stale.");
   }
 
-  if (els.scheduleToggleBtn) {
-    els.scheduleToggleBtn.addEventListener("click", async function () {
-      if (liveSchedulesBusy || els.scheduleToggleBtn.disabled) return;
+  async function toggleSchedule(scheduleId) {
+    if (liveSchedulesBusy) return;
+    const currentlyOn =
+      scheduleId === "nightly_cases" ? nightlyCasesEnabled : tuesdaySessionsEnabled;
+    const wantOn = !currentlyOn;
+    if (!doubleConfirmScheduleChange(wantOn, scheduleId)) return;
 
-      const wantOn = !liveSchedulesEnabled;
-      if (!doubleConfirmScheduleChange(wantOn)) return;
+    liveSchedulesBusy = true;
+    renderLiveSchedules({
+      configured: true,
+      nightlyCasesEnabled: nightlyCasesEnabled,
+      tuesdaySessionsEnabled: tuesdaySessionsEnabled,
+      rules: [
+        { id: "nightly_cases", state: nightlyCasesEnabled ? "ENABLED" : "DISABLED" },
+        { id: "tuesday_sessions", state: tuesdaySessionsEnabled ? "ENABLED" : "DISABLED" },
+      ],
+    });
+    const labelEl =
+      scheduleId === "nightly_cases"
+        ? els.casesScheduleToggleLabel
+        : els.sessionsScheduleToggleLabel;
+    if (labelEl) labelEl.textContent = wantOn ? "Enabling…" : "Disabling…";
+    if (els.scheduleResult) {
+      els.scheduleResult.hidden = true;
+      els.scheduleResult.textContent = "";
+    }
+    showError("");
+    showSuccess("");
 
-      liveSchedulesBusy = true;
-      els.scheduleToggleBtn.disabled = true;
-      if (els.scheduleToggleLabel) {
-        els.scheduleToggleLabel.textContent = wantOn ? "Enabling…" : "Disabling…";
-      }
+    try {
+      const data = await api("setLiveSchedules", {
+        method: "POST",
+        body: {
+          enabled: wantOn,
+          confirm: wantOn ? "SCHEDULE_ON" : "SCHEDULE_OFF",
+          scheduleIds: [scheduleId],
+        },
+      });
+      renderLiveSchedules(data);
       if (els.scheduleResult) {
-        els.scheduleResult.hidden = true;
-        els.scheduleResult.textContent = "";
+        els.scheduleResult.hidden = false;
+        els.scheduleResult.textContent =
+          data.message ||
+          (wantOn ? "Schedule enabled." : "Schedule disabled.");
       }
-      showError("");
-      showSuccess("");
-
+      showSuccess(
+        data.message ||
+          (wantOn
+            ? scheduleId === "nightly_cases"
+              ? "Live cases schedule is ON."
+              : "API/sessions schedule is ON."
+            : scheduleId === "nightly_cases"
+              ? "Live cases schedule is OFF."
+              : "API/sessions schedule is OFF."),
+      );
+    } catch (err) {
+      showError(err.message || "Could not update live schedules.");
       try {
-        const data = await api("setLiveSchedules", {
-          method: "POST",
-          body: {
-            enabled: wantOn,
-            confirm: wantOn ? "SCHEDULE_ON" : "SCHEDULE_OFF",
-          },
+        const refresh = await api("scheduleStatus");
+        renderLiveSchedules(refresh);
+      } catch (_) {
+        renderLiveSchedules({
+          configured: true,
+          nightlyCasesEnabled: nightlyCasesEnabled,
+          tuesdaySessionsEnabled: tuesdaySessionsEnabled,
         });
-        renderLiveSchedules(data);
-        if (els.scheduleResult) {
-          els.scheduleResult.hidden = false;
-          els.scheduleResult.textContent =
-            data.message ||
-            (wantOn ? "Live schedules enabled." : "Live schedules disabled.");
-        }
-        showSuccess(
-          wantOn
-            ? "Live schedules are ON (nightly cases + Tuesday sessions)."
-            : "Live schedules are OFF.",
-        );
-      } catch (err) {
-        showError(err.message || "Could not update live schedules.");
-        try {
-          const refresh = await api("scheduleStatus");
-          renderLiveSchedules(refresh);
-        } catch (_) {
-          renderLiveSchedules({
-            configured: true,
-            enabled: liveSchedulesEnabled,
-            note: "Could not refresh schedule state.",
-          });
-        }
-      } finally {
-        liveSchedulesBusy = false;
-        if (els.scheduleToggleBtn) {
-          els.scheduleToggleBtn.disabled = false;
-        }
-        if (els.scheduleToggleLabel) {
-          els.scheduleToggleLabel.textContent = liveSchedulesEnabled
-            ? "Schedules ON"
-            : "Schedules OFF";
-        }
       }
+    } finally {
+      liveSchedulesBusy = false;
+      renderLiveSchedules({
+        configured: true,
+        nightlyCasesEnabled: nightlyCasesEnabled,
+        tuesdaySessionsEnabled: tuesdaySessionsEnabled,
+      });
+    }
+  }
+
+  if (els.casesScheduleToggleBtn) {
+    els.casesScheduleToggleBtn.addEventListener("click", function () {
+      toggleSchedule("nightly_cases");
+    });
+  }
+  if (els.sessionsScheduleToggleBtn) {
+    els.sessionsScheduleToggleBtn.addEventListener("click", function () {
+      toggleSchedule("tuesday_sessions");
     });
   }
 

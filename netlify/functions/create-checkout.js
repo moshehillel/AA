@@ -71,8 +71,8 @@ exports.handler = async (event, context) => {
         },
       ],
       mode: 'payment',
-      success_url: success_url || `${process.env.URL || 'https://advancedautomations.net'}/payment.html?success=true`,
-      cancel_url: cancel_url || `${process.env.URL || 'https://advancedautomations.net'}/payment.html?canceled=true`,
+      success_url: success_url || `${process.env.URL || 'https://advancedautomations.net'}/payment-success.html`,
+      cancel_url: cancel_url || `${process.env.URL || 'https://advancedautomations.net'}/payment-failed.html`,
       customer_email: customerName ? `${customerName.toLowerCase().replace(/\s+/g, '.')}@example.com` : undefined,
     });
 
