@@ -618,8 +618,8 @@
           payButton.textContent = 'Creating checkout session...';
           
           try {
-            const success_url = window.location.href + (window.location.href.includes('?') ? '&paid=1' : '?paid=1');
-            const cancel_url = window.location.href + (window.location.href.includes('?') ? '&canceled=1' : '?canceled=1');
+            const success_url = 'payment-success.html';
+            const cancel_url = 'payment-failed.html';
             const resp = await fetch(CREATE_CHECKOUT_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
