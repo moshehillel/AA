@@ -1,19 +1,111 @@
+const fs = require("fs");
+const path = require("path");
 const { getStore } = require("@netlify/blobs");
 
-function clientsStore() {
-  return getStore("support-clients");
+const FILE_ROOT = path.join(process.cwd(), ".netlify", "support-data");
+
+let storeMode = null; // "blobs" | "file"
+
+function detectMode() {
+  if (storeMode) return storeMode;
+  if (process.env.SUPPORT_STORE === "file") {
+    storeMode = "file";
+    return storeMode;
+  }
+  try {
+    getStore("support-clients");
+    storeMode = "blobs";
+  } catch (error) {
+    const message = String(error && error.message ? error.message : error);
+    if (
+      error.name === "MissingBlobsEnvironmentError" ||
+      message.includes("Netlify Blobs") ||
+      message.includes("siteID")
+    ) {
+      console.warn("Netlify Blobs unavailable; using local file store at", FILE_ROOT);
+      storeMode = "file";
+    } else {
+      throw error;
+    }
+  }
+  return storeMode;
 }
 
-function ticketsStore() {
-  return getStore("support-tickets");
+function ensureDir(dir) {
+  fs.mkdirSync(dir, { recursive: true });
 }
+
+function encodeKey(key) {
+  return Buffer.from(String(key), "utf8").toString("base64url");
+}
+
+function decodeKey(encoded) {
+  return Buffer.from(String(encoded), "base64url").toString("utf8");
+}
+
+function encodedFilePath(storeName, key) {
+  return path.join(FILE_ROOT, storeName, `${encodeKey(key)}.json`);
+}
+
+async function storeGet(storeName, key, { type = "json" } = {}) {
+  if (detectMode() === "blobs") {
+    return getStore(storeName).get(key, { type });
+  }
+  const full = encodedFilePath(storeName, key);
+  if (!fs.existsSync(full)) return null;
+  const raw = fs.readFileSync(full, "utf8");
+  if (type === "text") {
+    try {
+      const parsed = JSON.parse(raw);
+      return typeof parsed === "string" ? parsed : String(parsed);
+    } catch {
+      return raw;
+    }
+  }
+  return JSON.parse(raw);
+}
+
+async function storeSetJSON(storeName, key, value) {
+  if (detectMode() === "blobs") {
+    await getStore(storeName).setJSON(key, value);
+    return;
+  }
+  const full = encodedFilePath(storeName, key);
+  ensureDir(path.dirname(full));
+  fs.writeFileSync(full, JSON.stringify(value), "utf8");
+}
+
+async function storeSetText(storeName, key, value) {
+  if (detectMode() === "blobs") {
+    await getStore(storeName).set(key, value);
+    return;
+  }
+  const full = encodedFilePath(storeName, key);
+  ensureDir(path.dirname(full));
+  fs.writeFileSync(full, JSON.stringify(value), "utf8");
+}
+
+async function storeListKeys(storeName) {
+  if (detectMode() === "blobs") {
+    const { blobs } = await getStore(storeName).list();
+    return blobs.map((b) => b.key);
+  }
+  const dir = path.join(FILE_ROOT, storeName);
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((name) => name.endsWith(".json"))
+    .map((name) => decodeKey(name.slice(0, -5)));
+}
+
+const CLIENTS = "support-clients";
+const TICKETS = "support-tickets";
 
 async function listClients() {
-  const store = clientsStore();
-  const { blobs } = await store.list();
+  const keys = await storeListKeys(CLIENTS);
   const clients = [];
-  for (const blob of blobs) {
-    const client = await store.get(blob.key, { type: "json" });
+  for (const key of keys) {
+    const client = await storeGet(CLIENTS, key, { type: "json" });
     if (client) clients.push(client);
   }
   clients.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
@@ -22,21 +114,20 @@ async function listClients() {
 
 async function getClient(slug) {
   if (!slug) return null;
-  return clientsStore().get(slug, { type: "json" });
+  return storeGet(CLIENTS, slug, { type: "json" });
 }
 
 async function saveClient(client) {
-  await clientsStore().setJSON(client.slug, client);
+  await storeSetJSON(CLIENTS, client.slug, client);
   return client;
 }
 
 async function listTickets() {
-  const store = ticketsStore();
-  const { blobs } = await store.list();
+  const keys = await storeListKeys(TICKETS);
   const tickets = [];
-  for (const blob of blobs) {
-    if (!blob.key.startsWith("id:")) continue;
-    const ticket = await store.get(blob.key, { type: "json" });
+  for (const key of keys) {
+    if (!key.startsWith("id:")) continue;
+    const ticket = await storeGet(TICKETS, key, { type: "json" });
     if (ticket) tickets.push(ticket);
   }
   tickets.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
@@ -45,21 +136,19 @@ async function listTickets() {
 
 async function getTicketById(id) {
   if (!id) return null;
-  return ticketsStore().get(`id:${id}`, { type: "json" });
+  return storeGet(TICKETS, `id:${id}`, { type: "json" });
 }
 
 async function getTicketByToken(trackToken) {
   if (!trackToken) return null;
-  const store = ticketsStore();
-  const id = await store.get(`token:${trackToken}`, { type: "text" });
+  const id = await storeGet(TICKETS, `token:${trackToken}`, { type: "text" });
   if (!id) return null;
   return getTicketById(id);
 }
 
 async function saveTicket(ticket) {
-  const store = ticketsStore();
-  await store.setJSON(`id:${ticket.id}`, ticket);
-  await store.set(`token:${ticket.trackToken}`, ticket.id);
+  await storeSetJSON(TICKETS, `id:${ticket.id}`, ticket);
+  await storeSetText(TICKETS, `token:${ticket.trackToken}`, ticket.id);
   return ticket;
 }
 
