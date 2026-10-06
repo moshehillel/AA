@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client Support · Advanced Automations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./support.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <img src="/Images/AA-Logo.png" alt="Advanced Automations" />
+        <div>
+          <h1>Support</h1>
+          <p id="subtitle">Sign in to submit and track requests</p>
+        </div>
+      </div>
+      <button class="btn ghost hidden" type="button" id="logoutBtn">Sign out</button>
+    </header>
+
+    <section id="loginView" class="login-wrap panel">
+      <form id="loginForm">
+        <div class="field">
+          <label for="loginSlug">Client slug</label>
+          <input id="loginSlug" name="slug" required placeholder="acme-co" autocomplete="username" />
+        </div>
+        <div class="field">
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" name="password" type="password" required autocomplete="current-password" />
+        </div>
+        <button type="submit">Sign in</button>
+      </form>
+      <p class="status" id="loginStatus"></p>
+    </section>
+
+    <section id="appView" class="hidden">
+      <div class="grid-2">
+        <div class="panel">
+          <h2 style="font-size:1.05rem;margin-bottom:1rem;">New request</h2>
+          <form id="createForm">
+            <div class="field">
+              <label for="requesterName">Your name</label>
+              <input id="requesterName" required />
+            </div>
+            <div class="field">
+              <label for="requesterEmail">Email</label>
+              <input id="requesterEmail" type="email" required />
+            </div>
+            <div class="field">
+              <label for="subject">Subject</label>
+              <input id="subject" required />
+            </div>
+            <div class="field">
+              <label for="message">Message</label>
+              <textarea id="message" required></textarea>
+            </div>
+            <button type="submit">Submit request</button>
+          </form>
+          <p class="status" id="createStatus"></p>
+        </div>
+        <div class="panel">
+          <h2 style="font-size:1.05rem;margin-bottom:1rem;">Your tickets</h2>
+          <div class="list" id="ticketList"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script src="./support.js"></script>
+</body>
+</html>

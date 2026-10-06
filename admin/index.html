@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support Admin · Advanced Automations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./admin.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <img src="/Images/AA-Logo.png" alt="Advanced Automations" />
+        <div>
+          <h1>Support Admin</h1>
+          <p>Tickets and client access</p>
+        </div>
+      </div>
+      <button class="btn ghost" type="button" id="refreshBtn">Refresh</button>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" type="button" data-tab="tickets">Tickets</button>
+      <button class="tab" type="button" data-tab="clients">Clients</button>
+    </nav>
+
+    <p class="status" id="globalStatus"></p>
+
+    <section id="ticketsTab">
+      <div class="row" style="margin-bottom: 1rem;">
+        <div class="field" style="min-width: 160px;">
+          <label for="statusFilter">Status</label>
+          <select id="statusFilter">
+            <option value="all">All</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In progress</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="list" id="ticketList"></div>
+        </div>
+        <div class="panel" id="ticketDetail">
+          <p class="muted">Select a ticket to reply or update status.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="clientsTab" class="hidden">
+      <div class="grid-2">
+        <div class="panel">
+          <h2 style="margin-bottom: 1rem; font-size: 1.05rem;">Add client</h2>
+          <form id="addClientForm">
+            <div class="field">
+              <label for="clientName">Display name</label>
+              <input id="clientName" name="name" required placeholder="Acme Co" />
+            </div>
+            <div class="field">
+              <label for="clientSlug">Login slug</label>
+              <input id="clientSlug" name="slug" required placeholder="acme-co" />
+            </div>
+            <div class="field">
+              <label for="clientPassword">Password</label>
+              <input id="clientPassword" name="password" type="password" required minlength="6" />
+            </div>
+            <button class="btn primary" type="submit">Add client</button>
+          </form>
+          <p class="status" id="clientFormStatus"></p>
+        </div>
+        <div class="panel">
+          <h2 style="margin-bottom: 1rem; font-size: 1.05rem;">Clients</h2>
+          <div id="clientList"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script src="./admin.js"></script>
+</body>
+</html>

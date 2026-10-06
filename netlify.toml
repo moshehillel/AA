@@ -17,3 +17,36 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Cache-Control = "no-store"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/support/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/t/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Cache-Control = "no-store"
+
+# Public ticket track URLs: /t/<token>/ serves the track SPA shell.
+[[redirects]]
+  from = "/t/*"
+  to = "/t/index.html"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/support"
+  to = "/support/"
+  status = 301
