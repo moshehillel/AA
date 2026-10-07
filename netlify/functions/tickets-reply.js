@@ -1,6 +1,7 @@
 const { json, parseBody, methodNotAllowed, siteOrigin } = require("./_lib/http");
 const { requireAdmin, requireClientSession } = require("./_lib/auth");
 const {
+  initBlobs,
   getTicketById,
   getTicketByToken,
   saveTicket,
@@ -13,6 +14,7 @@ exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return methodNotAllowed();
 
   try {
+    initBlobs(event);
     const body = parseBody(event);
     const message = String(body.message || "").trim();
     if (!message) return json(400, { error: "Message is required." });

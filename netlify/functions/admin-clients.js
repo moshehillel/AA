@@ -1,10 +1,11 @@
 const { json, parseBody, methodNotAllowed } = require("./_lib/http");
 const { requireAdmin } = require("./_lib/auth");
-const { listClients, getClient, saveClient, publicClient } = require("./_lib/store");
+const { initBlobs, listClients, getClient, saveClient, publicClient } = require("./_lib/store");
 const { hashPassword, slugify } = require("./_lib/passwords");
 
 exports.handler = async (event) => {
   try {
+    initBlobs(event);
     const admin = requireAdmin(event);
     if (!admin.ok) {
       return json(admin.status, { error: admin.error }, admin.status === 401 ? {

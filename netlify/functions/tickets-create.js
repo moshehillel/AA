@@ -1,6 +1,6 @@
 const { json, parseBody, methodNotAllowed, siteOrigin } = require("./_lib/http");
 const { requireClientSession } = require("./_lib/auth");
-const { saveTicket, publicTicket } = require("./_lib/store");
+const { initBlobs, saveTicket, publicTicket } = require("./_lib/store");
 const { randomToken } = require("./_lib/passwords");
 const { notifyTicketCreated } = require("./_lib/email");
 
@@ -8,6 +8,7 @@ exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return methodNotAllowed();
 
   try {
+    initBlobs(event);
     const auth = await requireClientSession(event);
     if (!auth.ok) return json(auth.status, { error: auth.error });
 

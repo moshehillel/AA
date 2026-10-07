@@ -1,11 +1,12 @@
 const { json, methodNotAllowed } = require("./_lib/http");
 const { requireAdmin, requireClientSession } = require("./_lib/auth");
-const { getTicketById, getTicketByToken, publicTicket } = require("./_lib/store");
+const { initBlobs, getTicketById, getTicketByToken, publicTicket } = require("./_lib/store");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET") return methodNotAllowed();
 
   try {
+    initBlobs(event);
     const params = event.queryStringParameters || {};
     const trackToken = params.trackToken ? String(params.trackToken) : null;
     const id = params.id ? String(params.id) : null;

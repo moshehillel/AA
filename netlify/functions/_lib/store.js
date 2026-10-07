@@ -1,10 +1,21 @@
 const fs = require("fs");
 const path = require("path");
-const { getStore } = require("@netlify/blobs");
+const { connectLambda, getStore } = require("@netlify/blobs");
 
 const FILE_ROOT = path.join(process.cwd(), ".netlify", "support-data");
 
 let storeMode = null; // "blobs" | "file"
+
+// Classic Netlify Functions run in Lambda compatibility mode: Blobs context
+// is not auto-injected. Call this with the Lambda `event` before any store I/O.
+function initBlobs(event) {
+  if (event && event.blobs) {
+    connectLambda(event);
+    storeMode = "blobs";
+    return;
+  }
+  // Local / unlinked netlify dev: fall through to detectMode on first use.
+}
 
 function detectMode() {
   if (storeMode) return storeMode;
@@ -180,6 +191,7 @@ function publicClient(client) {
 }
 
 module.exports = {
+  initBlobs,
   listClients,
   getClient,
   saveClient,

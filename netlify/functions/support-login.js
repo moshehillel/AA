@@ -1,11 +1,12 @@
 const { json, parseBody, methodNotAllowed, getHeader } = require("./_lib/http");
 const { loginClient, sessionCookie } = require("./_lib/auth");
-const { publicClient } = require("./_lib/store");
+const { initBlobs, publicClient } = require("./_lib/store");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return methodNotAllowed();
 
   try {
+    initBlobs(event);
     const body = parseBody(event);
     const slug = String(body.slug || "").trim().toLowerCase();
     const password = String(body.password || "");

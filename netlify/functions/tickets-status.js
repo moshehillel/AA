@@ -1,6 +1,6 @@
 const { json, parseBody, methodNotAllowed, siteOrigin } = require("./_lib/http");
 const { requireAdmin } = require("./_lib/auth");
-const { getTicketById, saveTicket, publicTicket } = require("./_lib/store");
+const { initBlobs, getTicketById, saveTicket, publicTicket } = require("./_lib/store");
 const { notifyTicketUpdate } = require("./_lib/email");
 
 const ALLOWED = new Set(["open", "in_progress", "done"]);
@@ -9,6 +9,7 @@ exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return methodNotAllowed();
 
   try {
+    initBlobs(event);
     const admin = requireAdmin(event);
     if (!admin.ok) {
       return json(admin.status, { error: admin.error });
