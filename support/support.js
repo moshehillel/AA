@@ -6,14 +6,18 @@ const els = {
   loginForm: document.getElementById("loginForm"),
   loginStatus: document.getElementById("loginStatus"),
   logoutBtn: document.getElementById("logoutBtn"),
-  subtitle: document.getElementById("subtitle"),
   createForm: document.getElementById("createForm"),
   createStatus: document.getElementById("createStatus"),
   ticketList: document.getElementById("ticketList"),
-  ticketCount: document.getElementById("ticketCount"),
   ticketFilters: document.getElementById("ticketFilters"),
   welcomeTitle: document.getElementById("welcomeTitle"),
   welcomeCopy: document.getElementById("welcomeCopy"),
+  newTicketBtn: document.getElementById("newTicketBtn"),
+  ticketModal: document.getElementById("ticketModal"),
+  closeModalBtn: document.getElementById("closeModalBtn"),
+  statOpen: document.getElementById("statOpen"),
+  statProgress: document.getElementById("statProgress"),
+  statResolved: document.getElementById("statResolved"),
 };
 
 const state = {
@@ -21,16 +25,6 @@ const state = {
   tickets: [],
   filter: "all",
 };
-
-function setStatus(el, message, type = "") {
-  if (!el) return;
-  if (type === "ok" && message) {
-    el.innerHTML = `<div class="success-banner"><strong>Request submitted</strong><span class="meta">${escapeHtml(message)}</span></div>`;
-    return;
-  }
-  el.textContent = message || "";
-  el.className = `status ${type}`.trim();
-}
 
 function escapeHtml(value) {
   return String(value || "")
@@ -51,15 +45,31 @@ function formatWhen(iso) {
     const hours = Math.round(mins / 60);
     if (hours < 24) return `${hours}h ago`;
     const days = Math.round(hours / 24);
+    if (days === 1) return "Yesterday";
     if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   } catch {
     return iso;
   }
 }
 
 function statusLabel(status) {
-  return String(status || "").replace(/_/g, " ");
+  const map = {
+    open: "Open",
+    in_progress: "In Progress",
+    waiting_on_customer: "Waiting for Customer",
+    done: "Resolved",
+  };
+  return map[status] || String(status || "").replace(/_/g, " ");
+}
+
+function displayTicketId(ticket) {
+  const raw = String(ticket.id || "").replace(/[^a-zA-Z0-9]/g, "");
+  return `#${raw.slice(0, 6).toUpperCase()}`;
+}
+
+function trackUrlFor(ticket) {
+  return `${window.location.origin}/t/${encodeURIComponent(ticket.trackToken)}/`;
 }
 
 async function api(path, options = {}) {
@@ -87,22 +97,32 @@ function applyContactPlaceholders(client) {
   const defaultName = (client && client.defaultName) || (client && client.name) || "";
   const defaultEmail = (client && client.defaultEmail) || "";
   nameInput.placeholder = defaultName
-    ? `Optional — falls back to ${defaultName}`
-    : "Optional — falls back to account default";
+    ? `Falls back to ${defaultName}`
+    : "Falls back to account default";
   emailInput.placeholder = defaultEmail
-    ? `Optional — falls back to ${defaultEmail}`
-    : "Optional — falls back to account default";
+    ? `Falls back to ${defaultEmail}`
+    : "Falls back to account default";
+}
+
+function openModal() {
+  els.ticketModal.classList.remove("hidden");
+  els.createStatus.innerHTML = "";
+  document.getElementById("subject")?.focus();
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal() {
+  els.ticketModal.classList.add("hidden");
+  document.body.style.overflow = "";
 }
 
 function showLoggedIn(client) {
   state.client = client || null;
   els.loginView.classList.add("hidden");
   els.appView.classList.remove("hidden");
-  els.logoutBtn.classList.remove("hidden");
-  const name = client ? client.name : "your account";
-  els.subtitle.textContent = `${name} · signed in`;
+  const name = (client && (client.defaultName || client.name)) || "there";
   els.welcomeTitle.textContent = `Welcome back, ${name}`;
-  els.welcomeCopy.textContent = "Submit a new request or open a track link to follow an existing ticket.";
+  els.welcomeCopy.textContent = "How can we help you today?";
   applyContactPlaceholders(client);
 }
 
@@ -111,9 +131,19 @@ function showLoggedOut() {
   state.tickets = [];
   els.loginView.classList.remove("hidden");
   els.appView.classList.add("hidden");
-  els.logoutBtn.classList.add("hidden");
-  els.subtitle.textContent = "Sign in to submit and track requests";
+  closeModal();
   applyContactPlaceholders(null);
+}
+
+function updateSummary() {
+  const open = state.tickets.filter((t) => t.status === "open").length;
+  const progress = state.tickets.filter(
+    (t) => t.status === "in_progress" || t.status === "waiting_on_customer"
+  ).length;
+  const resolved = state.tickets.filter((t) => t.status === "done").length;
+  els.statOpen.textContent = String(open);
+  els.statProgress.textContent = String(progress);
+  els.statResolved.textContent = String(resolved);
 }
 
 function filteredTickets() {
@@ -122,59 +152,50 @@ function filteredTickets() {
 }
 
 function renderTickets() {
+  updateSummary();
   const tickets = filteredTickets();
-  const total = state.tickets.length;
-  els.ticketCount.textContent = total ? `${tickets.length} shown · ${total} total` : "";
 
-  if (!total) {
+  if (!state.tickets.length) {
     els.ticketList.innerHTML = `
       <div class="empty">
+        <div class="empty-icon" aria-hidden="true">◎</div>
         <strong>No tickets yet</strong>
-        <span>Submit a request on the left to get your first track link.</span>
+        <p>When you need help, create a ticket and track every update in one place.</p>
+        <button class="btn btn-primary" type="button" id="emptyNewTicket">+ Create your first ticket</button>
       </div>`;
+    document.getElementById("emptyNewTicket")?.addEventListener("click", openModal);
     return;
   }
 
   if (!tickets.length) {
     els.ticketList.innerHTML = `
       <div class="empty">
-        <strong>Nothing in this filter</strong>
-        <span>Try another status above.</span>
+        <strong>No tickets in this filter</strong>
+        <p>Try another status above, or create a new ticket.</p>
       </div>`;
     return;
   }
 
   els.ticketList.innerHTML = tickets
     .map((t) => {
-      const trackUrl = `${window.location.origin}/t/${encodeURIComponent(t.trackToken)}/`;
+      const url = trackUrlFor(t);
       return `
-        <article class="item">
-          <div class="item-top">
-            <h3>${escapeHtml(t.subject)}</h3>
-            <span class="badge ${t.status}">${statusLabel(t.status)}</span>
-          </div>
-          <div class="meta">Updated ${formatWhen(t.updatedAt)}</div>
-          <div class="actions">
-            <a class="btn ghost sm" href="${trackUrl}" target="_blank" rel="noopener">Open track link</a>
-            <button class="btn ghost sm" type="button" data-copy="${trackUrl}">Copy link</button>
-          </div>
-        </article>
-      `;
+        <button class="ticket-row" type="button" data-href="${escapeHtml(url)}">
+          <span class="ticket-id">${displayTicketId(t)}</span>
+          <span class="ticket-main">
+            <span class="ticket-subject">${escapeHtml(t.subject)}</span>
+            <span class="ticket-sub">Created ${formatWhen(t.createdAt)}</span>
+          </span>
+          <span class="badge ${t.status}">${statusLabel(t.status)}</span>
+          <span class="ticket-updated">Updated ${formatWhen(t.updatedAt)}</span>
+          <span class="ticket-chevron" aria-hidden="true">›</span>
+        </button>`;
     })
     .join("");
 
-  els.ticketList.querySelectorAll("[data-copy]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(btn.dataset.copy);
-        const prev = btn.textContent;
-        btn.textContent = "Copied";
-        setTimeout(() => {
-          btn.textContent = prev;
-        }, 1200);
-      } catch {
-        prompt("Copy this track link:", btn.dataset.copy);
-      }
+  els.ticketList.querySelectorAll(".ticket-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      window.open(row.dataset.href, "_blank", "noopener");
     });
   });
 }
@@ -209,21 +230,36 @@ els.ticketFilters.addEventListener("click", (e) => {
   renderTickets();
 });
 
+els.newTicketBtn.addEventListener("click", openModal);
+els.closeModalBtn.addEventListener("click", closeModal);
+
+els.ticketModal.addEventListener("click", (e) => {
+  if (e.target === els.ticketModal) closeModal();
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !els.ticketModal.classList.contains("hidden")) {
+    closeModal();
+  }
+});
+
 els.loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const slug = document.getElementById("loginSlug").value.trim().toLowerCase();
   const password = document.getElementById("loginPassword").value;
   try {
-    setStatus(els.loginStatus, "Signing in…");
+    els.loginStatus.textContent = "Signing in…";
+    els.loginStatus.className = "status";
     const data = await api("support-login", {
       method: "POST",
       body: JSON.stringify({ slug, password }),
     });
-    setStatus(els.loginStatus, "");
+    els.loginStatus.textContent = "";
     showLoggedIn(data.client);
     await loadTickets();
   } catch (error) {
-    setStatus(els.loginStatus, error.message, "error");
+    els.loginStatus.textContent = error.message;
+    els.loginStatus.className = "status error";
   }
 });
 
@@ -245,8 +281,7 @@ els.createForm.addEventListener("submit", async (e) => {
     message: document.getElementById("message").value.trim(),
   };
   try {
-    els.createStatus.textContent = "Submitting…";
-    els.createStatus.className = "status";
+    els.createStatus.innerHTML = `<p class="status">Submitting…</p>`;
     const data = await api("tickets-create", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -254,28 +289,30 @@ els.createForm.addEventListener("submit", async (e) => {
     els.createForm.reset();
     applyContactPlaceholders(state.client);
     els.createStatus.innerHTML = `
-      <div class="success-banner">
-        <strong>Request submitted</strong>
-        <span class="meta">We emailed you a track link. You can also copy it below.</span>
+      <div class="success-box">
+        <strong>Ticket submitted</strong>
+        <div class="meta">We’ll follow up on your track link.</div>
         <div class="actions">
-          <a class="btn sm" href="${escapeHtml(data.trackUrl)}" target="_blank" rel="noopener">Open track link</a>
-          <button class="btn ghost sm" type="button" id="copyNewTrack">Copy link</button>
+          <a class="btn btn-primary btn-sm" href="${escapeHtml(data.trackUrl)}" target="_blank" rel="noopener">Open track link</a>
+          <button class="btn btn-ghost btn-sm" type="button" id="copyNewTrack">Copy link</button>
+          <button class="btn btn-ghost btn-sm" type="button" id="doneModal">Done</button>
         </div>
       </div>`;
-    const copyBtn = document.getElementById("copyNewTrack");
-    if (copyBtn) {
-      copyBtn.addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(data.trackUrl);
-          copyBtn.textContent = "Copied";
-        } catch {
-          prompt("Copy this track link:", data.trackUrl);
-        }
-      });
-    }
+    document.getElementById("copyNewTrack")?.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(data.trackUrl);
+        document.getElementById("copyNewTrack").textContent = "Copied";
+      } catch {
+        prompt("Copy this track link:", data.trackUrl);
+      }
+    });
+    document.getElementById("doneModal")?.addEventListener("click", () => {
+      closeModal();
+      els.createStatus.innerHTML = "";
+    });
     await loadTickets();
   } catch (error) {
-    setStatus(els.createStatus, error.message, "error");
+    els.createStatus.innerHTML = `<p class="status error">${escapeHtml(error.message)}</p>`;
   }
 });
 

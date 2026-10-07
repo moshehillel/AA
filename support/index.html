@@ -3,42 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Client Support · Advanced Automations</title>
+  <title>Support Portal · Advanced Automations</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./support.css" />
 </head>
 <body>
   <div class="shell">
-    <header class="topbar">
-      <div class="brand">
-        <img src="/Images/AA-Logo.png" alt="Advanced Automations" />
-        <div class="brand-copy">
-          <div class="brand-kicker">Advanced Automations</div>
-          <h1>Support</h1>
-          <p id="subtitle">Sign in to submit and track requests</p>
+    <!-- Login -->
+    <section id="loginView" class="login-page">
+      <div class="login-card">
+        <div class="logo-row">
+          <img src="/Images/AA-Logo.png" alt="Advanced Automations" />
+          <div>
+            <strong>Advanced Automations</strong>
+            <div class="status" style="margin:0;">Client support portal</div>
+          </div>
         </div>
-      </div>
-      <button class="btn ghost sm hidden" type="button" id="logoutBtn">Sign out</button>
-    </header>
-
-    <section id="loginView" class="login-stage">
-      <div class="login-intro">
-        <div class="brand-kicker">Client portal</div>
-        <h2>Open a request.<br />Track every reply.</h2>
-        <p>Submit issues to our team, follow progress on a private track link, and keep everything in one place.</p>
-        <ul class="login-points">
-          <li>Create a ticket in under a minute</li>
-          <li>Get a shareable status link instantly</li>
-          <li>Reply anytime — no inbox digging</li>
-        </ul>
-      </div>
-      <div class="login-wrap panel">
-        <div class="panel-head">
-          <h2>Sign in</h2>
-          <span class="hint">Use the slug and password we sent you</span>
-        </div>
+        <h1>Sign in to support</h1>
+        <p class="lead">Submit requests and track status in one place.</p>
         <form id="loginForm">
           <div class="field">
             <label for="loginSlug">Client slug</label>
@@ -48,62 +32,103 @@
             <label for="loginPassword">Password</label>
             <input id="loginPassword" name="password" type="password" required autocomplete="current-password" />
           </div>
-          <button class="block" type="submit">Continue</button>
+          <button class="btn btn-primary btn-block" type="submit">Sign in</button>
         </form>
         <p class="status" id="loginStatus"></p>
       </div>
     </section>
 
+    <!-- Portal -->
     <section id="appView" class="hidden">
-      <div class="app-hero">
-        <h2 id="welcomeTitle">Your requests</h2>
-        <p id="welcomeCopy">Submit something new or follow up on an open ticket.</p>
-      </div>
-      <div class="grid-2">
-        <div class="panel">
-          <div class="panel-head">
-            <h2>New request</h2>
-            <span class="hint">Subject &amp; message required</span>
+      <header class="app-chrome">
+        <div class="chrome-inner">
+          <div class="brand">
+            <img src="/Images/AA-Logo.png" alt="Advanced Automations" />
+            <div class="brand-text">
+              <strong>Advanced Automations</strong>
+              <span>Support portal</span>
+            </div>
           </div>
-          <form id="createForm">
-            <div class="field-row">
-              <div class="field">
-                <label for="requesterName">Your name <span class="opt">(optional)</span></label>
-                <input id="requesterName" placeholder="Optional — falls back to account default" autocomplete="name" />
-              </div>
-              <div class="field">
-                <label for="requesterEmail">Email <span class="opt">(optional)</span></label>
-                <input id="requesterEmail" type="email" placeholder="Optional — falls back to account default" autocomplete="email" />
-              </div>
-            </div>
-            <div class="field">
-              <label for="subject">Subject</label>
-              <input id="subject" required placeholder="Short summary of the issue" />
-            </div>
-            <div class="field">
-              <label for="message">Message</label>
-              <textarea id="message" required placeholder="What happened, what you expected, and any useful details…"></textarea>
-            </div>
-            <button class="block" type="submit">Submit request</button>
-          </form>
-          <div id="createStatus"></div>
+          <button class="btn btn-ghost btn-sm" type="button" id="logoutBtn">Sign out</button>
         </div>
-        <div class="panel">
-          <div class="panel-head">
-            <h2>Your tickets</h2>
-            <span class="hint" id="ticketCount"></span>
-          </div>
+      </header>
+
+      <div class="portal-hero">
+        <div>
+          <h1 id="welcomeTitle">Welcome back</h1>
+          <p id="welcomeCopy">How can we help you today?</p>
+        </div>
+        <button class="btn btn-primary" type="button" id="newTicketBtn">
+          <span class="btn-icon">+</span> New Ticket
+        </button>
+      </div>
+
+      <div class="summary-row" id="summaryRow">
+        <div class="summary-card open">
+          <div class="label">Open</div>
+          <div class="value" id="statOpen">0</div>
+        </div>
+        <div class="summary-card progress">
+          <div class="label">In progress</div>
+          <div class="value" id="statProgress">0</div>
+        </div>
+        <div class="summary-card resolved">
+          <div class="label">Resolved</div>
+          <div class="value" id="statResolved">0</div>
+        </div>
+      </div>
+
+      <div class="ticket-panel">
+        <div class="ticket-panel-head">
+          <h2>Your support tickets</h2>
           <div class="filters" id="ticketFilters" role="tablist" aria-label="Filter tickets">
             <button class="filter-chip active" type="button" data-filter="all">All</button>
             <button class="filter-chip" type="button" data-filter="open">Open</button>
             <button class="filter-chip" type="button" data-filter="in_progress">In progress</button>
-            <button class="filter-chip" type="button" data-filter="done">Done</button>
+            <button class="filter-chip" type="button" data-filter="waiting_on_customer">Waiting</button>
+            <button class="filter-chip" type="button" data-filter="done">Resolved</button>
           </div>
-          <div class="list" id="ticketList"></div>
         </div>
+        <div class="ticket-list" id="ticketList"></div>
       </div>
     </section>
   </div>
+
+  <!-- New ticket modal -->
+  <div id="ticketModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h2 id="modalTitle">New ticket</h2>
+          <p>Tell us what’s going on — we’ll follow up on your track link.</p>
+        </div>
+        <button class="modal-close" type="button" id="closeModalBtn" aria-label="Close">×</button>
+      </div>
+      <form id="createForm">
+        <div class="field-row">
+          <div class="field">
+            <label for="requesterName">Your name <span class="opt">(optional)</span></label>
+            <input id="requesterName" placeholder="Falls back to account default" autocomplete="name" />
+          </div>
+          <div class="field">
+            <label for="requesterEmail">Email <span class="opt">(optional)</span></label>
+            <input id="requesterEmail" type="email" placeholder="Falls back to account default" autocomplete="email" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="subject">Subject</label>
+          <input id="subject" required placeholder="Short summary of the issue" />
+        </div>
+        <div class="field">
+          <label for="message">Message</label>
+          <textarea id="message" required placeholder="What happened, what you expected, and any useful details…"></textarea>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Submit ticket</button>
+      </form>
+      <div id="createStatus"></div>
+    </div>
+  </div>
+
   <script src="./support.js"></script>
 </body>
 </html>

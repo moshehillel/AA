@@ -3,7 +3,7 @@ const { requireAdmin } = require("./_lib/auth");
 const { initBlobs, getTicketById, saveTicket, publicTicket } = require("./_lib/store");
 const { notifyTicketUpdate } = require("./_lib/email");
 
-const ALLOWED = new Set(["open", "in_progress", "done"]);
+const ALLOWED = new Set(["open", "in_progress", "waiting_on_customer", "done"]);
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return methodNotAllowed();

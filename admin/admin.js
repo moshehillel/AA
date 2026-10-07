@@ -46,8 +46,18 @@ function formatWhen(iso) {
   }
 }
 
+function statusLabel(status) {
+  const map = {
+    open: "Open",
+    in_progress: "In Progress",
+    waiting_on_customer: "Waiting for Customer",
+    done: "Resolved",
+  };
+  return map[status] || String(status || "").replace(/_/g, " ");
+}
+
 function statusBadge(status) {
-  return `<span class="badge ${status}">${status.replace("_", " ")}</span>`;
+  return `<span class="badge ${status}">${statusLabel(status)}</span>`;
 }
 
 async function api(path, options = {}) {
@@ -122,7 +132,8 @@ function renderTicketDetail() {
     <div class="actions" style="margin-bottom:1rem;">
       <button class="btn" type="button" data-status="open">Open</button>
       <button class="btn" type="button" data-status="in_progress">In progress</button>
-      <button class="btn primary" type="button" data-status="done">Mark done</button>
+      <button class="btn" type="button" data-status="waiting_on_customer">Waiting for customer</button>
+      <button class="btn primary" type="button" data-status="done">Mark resolved</button>
     </div>
     <div class="thread">${messages}</div>
     <form id="replyForm">

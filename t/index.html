@@ -6,24 +6,25 @@
   <title>Track ticket · Advanced Automations</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/support/support.css" />
 </head>
 <body>
   <div class="shell track-shell">
-    <header class="topbar">
-      <div class="brand">
-        <img src="/Images/AA-Logo.png" alt="Advanced Automations" />
-        <div class="brand-copy">
-          <div class="brand-kicker">Advanced Automations</div>
-          <h1>Ticket status</h1>
-          <p>Public track link — no login required</p>
+    <header class="app-chrome" style="margin-bottom: 1.5rem;">
+      <div class="chrome-inner" style="max-width: 720px;">
+        <div class="brand">
+          <img src="/Images/AA-Logo.png" alt="Advanced Automations" />
+          <div class="brand-text">
+            <strong>Advanced Automations</strong>
+            <span>Ticket status</span>
+          </div>
         </div>
       </div>
     </header>
 
-    <section class="panel track-panel" id="trackPanel">
-      <p class="status loading-pulse" id="trackStatus">Loading ticket…</p>
+    <section class="track-card" id="trackPanel">
+      <p class="status" style="padding: 1.5rem;" id="trackStatus">Loading ticket…</p>
     </section>
   </div>
   <script src="/t/track.js"></script>

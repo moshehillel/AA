@@ -228,7 +228,8 @@ textarea { min-height: 110px; resize: vertical; }
 }
 
 .badge.open { background: rgba(36, 119, 255, 0.12); color: var(--blue); }
-.badge.in_progress { background: rgba(25, 199, 212, 0.15); color: #0f7f88; }
+.badge.in_progress { background: #fffbeb; color: #b45309; }
+.badge.waiting_on_customer { background: #f5f3ff; color: #6d28d9; }
 .badge.done { background: rgba(66, 211, 146, 0.18); color: #1b8a55; }
 .badge.inactive { background: rgba(192, 57, 43, 0.12); color: var(--danger); }
 

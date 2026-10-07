@@ -3,8 +3,7 @@ const API = "/.netlify/functions";
 function tokenFromPath() {
   const parts = window.location.pathname.split("/").filter(Boolean);
   if (parts[0] === "t" && parts[1]) return decodeURIComponent(parts[1]);
-  const params = new URLSearchParams(window.location.search);
-  return params.get("token");
+  return new URLSearchParams(window.location.search).get("token");
 }
 
 function escapeHtml(value) {
@@ -31,7 +30,18 @@ function formatWhen(iso) {
 }
 
 function statusLabel(status) {
-  return String(status || "").replace(/_/g, " ");
+  const map = {
+    open: "Open",
+    in_progress: "In Progress",
+    waiting_on_customer: "Waiting for Customer",
+    done: "Resolved",
+  };
+  return map[status] || String(status || "").replace(/_/g, " ");
+}
+
+function displayTicketId(ticket) {
+  const raw = String(ticket.id || "").replace(/[^a-zA-Z0-9]/g, "");
+  return `#${raw.slice(0, 6).toUpperCase()}`;
 }
 
 async function api(path, options = {}) {
@@ -44,9 +54,7 @@ async function api(path, options = {}) {
     ...options,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || `Request failed (${res.status})`);
-  }
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
   return data;
 }
 
@@ -68,16 +76,16 @@ function render(ticket) {
     <div class="track-hero">
       <span class="badge ${ticket.status}">${statusLabel(ticket.status)}</span>
       <h1>${escapeHtml(ticket.subject)}</h1>
-      <p class="meta">${escapeHtml(ticket.clientName || ticket.clientSlug)} · updated ${formatWhen(ticket.updatedAt)}</p>
+      <p class="track-meta">${displayTicketId(ticket)} · ${escapeHtml(ticket.clientName || ticket.clientSlug)} · Updated ${formatWhen(ticket.updatedAt)}</p>
     </div>
-    <div class="thread">${messages || '<p class="meta">No messages yet.</p>'}</div>
+    <div class="thread">${messages || '<p class="status">No messages yet.</p>'}</div>
     <div class="reply-box">
       <form id="replyForm">
         <div class="field">
           <label for="replyBody">Add a reply</label>
           <textarea id="replyBody" required placeholder="Ask a follow-up or share more detail…"></textarea>
         </div>
-        <button type="submit">Send reply</button>
+        <button class="btn btn-primary" type="submit">Send reply</button>
       </form>
       <p class="status" id="replyStatus"></p>
     </div>
@@ -109,7 +117,7 @@ function render(ticket) {
 
 async function load() {
   if (!trackToken) {
-    panel.innerHTML = `<p class="status error">Missing track token in the URL.</p>`;
+    panel.innerHTML = `<p class="status error" style="padding:1.5rem;">Missing track token in the URL.</p>`;
     return;
   }
   try {
@@ -117,7 +125,7 @@ async function load() {
     document.title = `${data.ticket.subject} · Track ticket`;
     render(data.ticket);
   } catch (error) {
-    panel.innerHTML = `<p class="status error">${escapeHtml(error.message)}</p>`;
+    panel.innerHTML = `<p class="status error" style="padding:1.5rem;">${escapeHtml(error.message)}</p>`;
   }
 }
 
