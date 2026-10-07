@@ -10,9 +10,24 @@ const els = {
   createForm: document.getElementById("createForm"),
   createStatus: document.getElementById("createStatus"),
   ticketList: document.getElementById("ticketList"),
+  ticketCount: document.getElementById("ticketCount"),
+  ticketFilters: document.getElementById("ticketFilters"),
+  welcomeTitle: document.getElementById("welcomeTitle"),
+  welcomeCopy: document.getElementById("welcomeCopy"),
+};
+
+const state = {
+  client: null,
+  tickets: [],
+  filter: "all",
 };
 
 function setStatus(el, message, type = "") {
+  if (!el) return;
+  if (type === "ok" && message) {
+    el.innerHTML = `<div class="success-banner"><strong>Request submitted</strong><span class="meta">${escapeHtml(message)}</span></div>`;
+    return;
+  }
   el.textContent = message || "";
   el.className = `status ${type}`.trim();
 }
@@ -28,10 +43,23 @@ function escapeHtml(value) {
 function formatWhen(iso) {
   if (!iso) return "";
   try {
-    return new Date(iso).toLocaleString();
+    const date = new Date(iso);
+    const diff = Date.now() - date.getTime();
+    const mins = Math.round(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.round(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   } catch {
     return iso;
   }
+}
+
+function statusLabel(status) {
+  return String(status || "").replace(/_/g, " ");
 }
 
 async function api(path, options = {}) {
@@ -52,11 +80,10 @@ async function api(path, options = {}) {
   return data;
 }
 
-let currentClient = null;
-
 function applyContactPlaceholders(client) {
   const nameInput = document.getElementById("requesterName");
   const emailInput = document.getElementById("requesterEmail");
+  if (!nameInput || !emailInput) return;
   const defaultName = (client && client.defaultName) || (client && client.name) || "";
   const defaultEmail = (client && client.defaultEmail) || "";
   nameInput.placeholder = defaultName
@@ -68,16 +95,20 @@ function applyContactPlaceholders(client) {
 }
 
 function showLoggedIn(client) {
-  currentClient = client || null;
+  state.client = client || null;
   els.loginView.classList.add("hidden");
   els.appView.classList.remove("hidden");
   els.logoutBtn.classList.remove("hidden");
-  els.subtitle.textContent = client ? `${client.name} · submit and track requests` : "Signed in";
+  const name = client ? client.name : "your account";
+  els.subtitle.textContent = `${name} · signed in`;
+  els.welcomeTitle.textContent = `Welcome back, ${name}`;
+  els.welcomeCopy.textContent = "Submit a new request or open a track link to follow an existing ticket.";
   applyContactPlaceholders(client);
 }
 
 function showLoggedOut() {
-  currentClient = null;
+  state.client = null;
+  state.tickets = [];
   els.loginView.classList.remove("hidden");
   els.appView.classList.add("hidden");
   els.logoutBtn.classList.add("hidden");
@@ -85,26 +116,49 @@ function showLoggedOut() {
   applyContactPlaceholders(null);
 }
 
-function renderTickets(tickets) {
-  if (!tickets.length) {
-    els.ticketList.innerHTML = `<p class="meta">No tickets yet. Submit a request on the left.</p>`;
+function filteredTickets() {
+  if (state.filter === "all") return state.tickets;
+  return state.tickets.filter((t) => t.status === state.filter);
+}
+
+function renderTickets() {
+  const tickets = filteredTickets();
+  const total = state.tickets.length;
+  els.ticketCount.textContent = total ? `${tickets.length} shown · ${total} total` : "";
+
+  if (!total) {
+    els.ticketList.innerHTML = `
+      <div class="empty">
+        <strong>No tickets yet</strong>
+        <span>Submit a request on the left to get your first track link.</span>
+      </div>`;
     return;
   }
+
+  if (!tickets.length) {
+    els.ticketList.innerHTML = `
+      <div class="empty">
+        <strong>Nothing in this filter</strong>
+        <span>Try another status above.</span>
+      </div>`;
+    return;
+  }
+
   els.ticketList.innerHTML = tickets
     .map((t) => {
       const trackUrl = `${window.location.origin}/t/${encodeURIComponent(t.trackToken)}/`;
       return `
-        <div class="item">
-          <div style="display:flex;justify-content:space-between;gap:0.75rem;align-items:start;">
+        <article class="item">
+          <div class="item-top">
             <h3>${escapeHtml(t.subject)}</h3>
-            <span class="badge ${t.status}">${t.status.replace("_", " ")}</span>
+            <span class="badge ${t.status}">${statusLabel(t.status)}</span>
           </div>
-          <div class="meta">${formatWhen(t.updatedAt)}</div>
+          <div class="meta">Updated ${formatWhen(t.updatedAt)}</div>
           <div class="actions">
-            <a class="btn ghost" href="${trackUrl}" target="_blank" rel="noopener">Open track link</a>
-            <button class="btn ghost" type="button" data-copy="${trackUrl}">Copy link</button>
+            <a class="btn ghost sm" href="${trackUrl}" target="_blank" rel="noopener">Open track link</a>
+            <button class="btn ghost sm" type="button" data-copy="${trackUrl}">Copy link</button>
           </div>
-        </div>
+        </article>
       `;
     })
     .join("");
@@ -113,9 +167,10 @@ function renderTickets(tickets) {
     btn.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(btn.dataset.copy);
+        const prev = btn.textContent;
         btn.textContent = "Copied";
         setTimeout(() => {
-          btn.textContent = "Copy link";
+          btn.textContent = prev;
         }, 1200);
       } catch {
         prompt("Copy this track link:", btn.dataset.copy);
@@ -126,7 +181,8 @@ function renderTickets(tickets) {
 
 async function loadTickets() {
   const data = await api("tickets-list");
-  renderTickets(data.tickets || []);
+  state.tickets = data.tickets || [];
+  renderTickets();
 }
 
 async function bootstrap() {
@@ -142,6 +198,16 @@ async function bootstrap() {
     showLoggedOut();
   }
 }
+
+els.ticketFilters.addEventListener("click", (e) => {
+  const chip = e.target.closest("[data-filter]");
+  if (!chip) return;
+  state.filter = chip.dataset.filter;
+  els.ticketFilters.querySelectorAll(".filter-chip").forEach((c) => {
+    c.classList.toggle("active", c === chip);
+  });
+  renderTickets();
+});
 
 els.loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -179,18 +245,34 @@ els.createForm.addEventListener("submit", async (e) => {
     message: document.getElementById("message").value.trim(),
   };
   try {
-    setStatus(els.createStatus, "Submitting…");
+    els.createStatus.textContent = "Submitting…";
+    els.createStatus.className = "status";
     const data = await api("tickets-create", {
       method: "POST",
       body: JSON.stringify(payload),
     });
     els.createForm.reset();
-    applyContactPlaceholders(currentClient);
-    setStatus(
-      els.createStatus,
-      `Submitted. Track link: ${data.trackUrl}`,
-      "ok"
-    );
+    applyContactPlaceholders(state.client);
+    els.createStatus.innerHTML = `
+      <div class="success-banner">
+        <strong>Request submitted</strong>
+        <span class="meta">We emailed you a track link. You can also copy it below.</span>
+        <div class="actions">
+          <a class="btn sm" href="${escapeHtml(data.trackUrl)}" target="_blank" rel="noopener">Open track link</a>
+          <button class="btn ghost sm" type="button" id="copyNewTrack">Copy link</button>
+        </div>
+      </div>`;
+    const copyBtn = document.getElementById("copyNewTrack");
+    if (copyBtn) {
+      copyBtn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(data.trackUrl);
+          copyBtn.textContent = "Copied";
+        } catch {
+          prompt("Copy this track link:", data.trackUrl);
+        }
+      });
+    }
     await loadTickets();
   } catch (error) {
     setStatus(els.createStatus, error.message, "error");

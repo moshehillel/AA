@@ -14,56 +14,91 @@
     <header class="topbar">
       <div class="brand">
         <img src="/Images/AA-Logo.png" alt="Advanced Automations" />
-        <div>
+        <div class="brand-copy">
+          <div class="brand-kicker">Advanced Automations</div>
           <h1>Support</h1>
           <p id="subtitle">Sign in to submit and track requests</p>
         </div>
       </div>
-      <button class="btn ghost hidden" type="button" id="logoutBtn">Sign out</button>
+      <button class="btn ghost sm hidden" type="button" id="logoutBtn">Sign out</button>
     </header>
 
-    <section id="loginView" class="login-wrap panel">
-      <form id="loginForm">
-        <div class="field">
-          <label for="loginSlug">Client slug</label>
-          <input id="loginSlug" name="slug" required placeholder="acme-co" autocomplete="username" />
+    <section id="loginView" class="login-stage">
+      <div class="login-intro">
+        <div class="brand-kicker">Client portal</div>
+        <h2>Open a request.<br />Track every reply.</h2>
+        <p>Submit issues to our team, follow progress on a private track link, and keep everything in one place.</p>
+        <ul class="login-points">
+          <li>Create a ticket in under a minute</li>
+          <li>Get a shareable status link instantly</li>
+          <li>Reply anytime — no inbox digging</li>
+        </ul>
+      </div>
+      <div class="login-wrap panel">
+        <div class="panel-head">
+          <h2>Sign in</h2>
+          <span class="hint">Use the slug and password we sent you</span>
         </div>
-        <div class="field">
-          <label for="loginPassword">Password</label>
-          <input id="loginPassword" name="password" type="password" required autocomplete="current-password" />
-        </div>
-        <button type="submit">Sign in</button>
-      </form>
-      <p class="status" id="loginStatus"></p>
+        <form id="loginForm">
+          <div class="field">
+            <label for="loginSlug">Client slug</label>
+            <input id="loginSlug" name="slug" required placeholder="acme-co" autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="loginPassword">Password</label>
+            <input id="loginPassword" name="password" type="password" required autocomplete="current-password" />
+          </div>
+          <button class="block" type="submit">Continue</button>
+        </form>
+        <p class="status" id="loginStatus"></p>
+      </div>
     </section>
 
     <section id="appView" class="hidden">
+      <div class="app-hero">
+        <h2 id="welcomeTitle">Your requests</h2>
+        <p id="welcomeCopy">Submit something new or follow up on an open ticket.</p>
+      </div>
       <div class="grid-2">
         <div class="panel">
-          <h2 style="font-size:1.05rem;margin-bottom:1rem;">New request</h2>
+          <div class="panel-head">
+            <h2>New request</h2>
+            <span class="hint">Subject &amp; message required</span>
+          </div>
           <form id="createForm">
-            <div class="field">
-              <label for="requesterName">Your name <span class="meta">(optional)</span></label>
-              <input id="requesterName" placeholder="Optional — falls back to account default" autocomplete="name" />
-            </div>
-            <div class="field">
-              <label for="requesterEmail">Email <span class="meta">(optional)</span></label>
-              <input id="requesterEmail" type="email" placeholder="Optional — falls back to account default" autocomplete="email" />
+            <div class="field-row">
+              <div class="field">
+                <label for="requesterName">Your name <span class="opt">(optional)</span></label>
+                <input id="requesterName" placeholder="Optional — falls back to account default" autocomplete="name" />
+              </div>
+              <div class="field">
+                <label for="requesterEmail">Email <span class="opt">(optional)</span></label>
+                <input id="requesterEmail" type="email" placeholder="Optional — falls back to account default" autocomplete="email" />
+              </div>
             </div>
             <div class="field">
               <label for="subject">Subject</label>
-              <input id="subject" required />
+              <input id="subject" required placeholder="Short summary of the issue" />
             </div>
             <div class="field">
               <label for="message">Message</label>
-              <textarea id="message" required></textarea>
+              <textarea id="message" required placeholder="What happened, what you expected, and any useful details…"></textarea>
             </div>
-            <button type="submit">Submit request</button>
+            <button class="block" type="submit">Submit request</button>
           </form>
-          <p class="status" id="createStatus"></p>
+          <div id="createStatus"></div>
         </div>
         <div class="panel">
-          <h2 style="font-size:1.05rem;margin-bottom:1rem;">Your tickets</h2>
+          <div class="panel-head">
+            <h2>Your tickets</h2>
+            <span class="hint" id="ticketCount"></span>
+          </div>
+          <div class="filters" id="ticketFilters" role="tablist" aria-label="Filter tickets">
+            <button class="filter-chip active" type="button" data-filter="all">All</button>
+            <button class="filter-chip" type="button" data-filter="open">Open</button>
+            <button class="filter-chip" type="button" data-filter="in_progress">In progress</button>
+            <button class="filter-chip" type="button" data-filter="done">Done</button>
+          </div>
           <div class="list" id="ticketList"></div>
         </div>
       </div>

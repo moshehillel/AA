@@ -2,7 +2,6 @@ const API = "/.netlify/functions";
 
 function tokenFromPath() {
   const parts = window.location.pathname.split("/").filter(Boolean);
-  // /t/<token>/...
   if (parts[0] === "t" && parts[1]) return decodeURIComponent(parts[1]);
   const params = new URLSearchParams(window.location.search);
   return params.get("token");
@@ -19,10 +18,20 @@ function escapeHtml(value) {
 function formatWhen(iso) {
   if (!iso) return "";
   try {
-    return new Date(iso).toLocaleString();
+    return new Date(iso).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
   } catch {
     return iso;
   }
+}
+
+function statusLabel(status) {
+  return String(status || "").replace(/_/g, " ");
 }
 
 async function api(path, options = {}) {
@@ -48,28 +57,30 @@ function render(ticket) {
   const messages = (ticket.messages || [])
     .map(
       (m) => `
-      <div class="bubble ${m.author}">
+      <div class="bubble ${m.author === "admin" ? "admin" : "client"}">
         <div class="who">${m.author === "admin" ? "Advanced Automations" : "You"} · ${formatWhen(m.createdAt)}</div>
-        <div>${escapeHtml(m.body)}</div>
+        <div class="body">${escapeHtml(m.body)}</div>
       </div>`
     )
     .join("");
 
   panel.innerHTML = `
     <div class="track-hero">
-      <span class="badge ${ticket.status}">${ticket.status.replace("_", " ")}</span>
+      <span class="badge ${ticket.status}">${statusLabel(ticket.status)}</span>
       <h1>${escapeHtml(ticket.subject)}</h1>
       <p class="meta">${escapeHtml(ticket.clientName || ticket.clientSlug)} · updated ${formatWhen(ticket.updatedAt)}</p>
     </div>
-    <div class="thread">${messages}</div>
-    <form id="replyForm">
-      <div class="field">
-        <label for="replyBody">Add a reply</label>
-        <textarea id="replyBody" required placeholder="Ask a follow-up or share more detail..."></textarea>
-      </div>
-      <button type="submit">Send reply</button>
-    </form>
-    <p class="status" id="replyStatus"></p>
+    <div class="thread">${messages || '<p class="meta">No messages yet.</p>'}</div>
+    <div class="reply-box">
+      <form id="replyForm">
+        <div class="field">
+          <label for="replyBody">Add a reply</label>
+          <textarea id="replyBody" required placeholder="Ask a follow-up or share more detail…"></textarea>
+        </div>
+        <button type="submit">Send reply</button>
+      </form>
+      <p class="status" id="replyStatus"></p>
+    </div>
   `;
 
   document.getElementById("replyForm").addEventListener("submit", async (e) => {
@@ -103,6 +114,7 @@ async function load() {
   }
   try {
     const data = await api(`tickets-get?trackToken=${encodeURIComponent(trackToken)}`);
+    document.title = `${data.ticket.subject} · Track ticket`;
     render(data.ticket);
   } catch (error) {
     panel.innerHTML = `<p class="status error">${escapeHtml(error.message)}</p>`;
