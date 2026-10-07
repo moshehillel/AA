@@ -13,13 +13,28 @@ exports.handler = async (event) => {
     if (!auth.ok) return json(auth.status, { error: auth.error });
 
     const body = parseBody(event);
-    const requesterName = String(body.requesterName || "").trim();
-    const requesterEmail = String(body.requesterEmail || "").trim();
     const subject = String(body.subject || "").trim();
     const message = String(body.message || "").trim();
+    const requesterName =
+      String(body.requesterName || "").trim() ||
+      String(auth.client.defaultName || "").trim() ||
+      String(auth.client.name || "").trim();
+    const requesterEmail =
+      String(body.requesterEmail || "").trim() ||
+      String(auth.client.defaultEmail || "").trim();
 
-    if (!requesterName || !requesterEmail || !subject || !message) {
-      return json(400, { error: "Name, email, subject, and message are required." });
+    if (!subject || !message) {
+      return json(400, { error: "Subject and message are required." });
+    }
+    if (!requesterName) {
+      return json(400, {
+        error: "Name is required (or set a default contact name for this client in admin).",
+      });
+    }
+    if (!requesterEmail) {
+      return json(400, {
+        error: "Email is required (or set a default contact email for this client in admin).",
+      });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(requesterEmail)) {
       return json(400, { error: "Invalid email format." });

@@ -43,12 +43,12 @@
           <h2 style="font-size:1.05rem;margin-bottom:1rem;">New request</h2>
           <form id="createForm">
             <div class="field">
-              <label for="requesterName">Your name</label>
-              <input id="requesterName" required />
+              <label for="requesterName">Your name <span class="meta">(optional)</span></label>
+              <input id="requesterName" placeholder="Optional — falls back to account default" autocomplete="name" />
             </div>
             <div class="field">
-              <label for="requesterEmail">Email</label>
-              <input id="requesterEmail" type="email" required />
+              <label for="requesterEmail">Email <span class="meta">(optional)</span></label>
+              <input id="requesterEmail" type="email" placeholder="Optional — falls back to account default" autocomplete="email" />
             </div>
             <div class="field">
               <label for="subject">Subject</label>

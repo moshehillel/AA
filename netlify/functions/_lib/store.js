@@ -185,6 +185,8 @@ function publicClient(client) {
   return {
     slug: client.slug,
     name: client.name,
+    defaultName: client.defaultName || "",
+    defaultEmail: client.defaultEmail || "",
     active: client.active !== false,
     createdAt: client.createdAt,
   };

@@ -22,6 +22,8 @@ exports.handler = async (event) => {
       const body = parseBody(event);
       const name = String(body.name || "").trim();
       const password = String(body.password || "");
+      const defaultName = String(body.defaultName || "").trim();
+      const defaultEmail = String(body.defaultEmail || "").trim();
       let slug = String(body.slug || slugify(name)).trim().toLowerCase();
       slug = slugify(slug);
 
@@ -30,6 +32,9 @@ exports.handler = async (event) => {
       }
       if (password.length < 6) {
         return json(400, { error: "Password must be at least 6 characters." });
+      }
+      if (defaultEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(defaultEmail)) {
+        return json(400, { error: "Invalid default email format." });
       }
 
       const existing = await getClient(slug);
@@ -40,6 +45,8 @@ exports.handler = async (event) => {
       const client = {
         slug,
         name,
+        defaultName,
+        defaultEmail,
         passwordHash: hashPassword(password),
         active: true,
         createdAt: new Date().toISOString(),
@@ -58,6 +65,16 @@ exports.handler = async (event) => {
 
       if (typeof body.name === "string" && body.name.trim()) {
         client.name = body.name.trim();
+      }
+      if (typeof body.defaultName === "string") {
+        client.defaultName = body.defaultName.trim();
+      }
+      if (typeof body.defaultEmail === "string") {
+        const defaultEmail = body.defaultEmail.trim();
+        if (defaultEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(defaultEmail)) {
+          return json(400, { error: "Invalid default email format." });
+        }
+        client.defaultEmail = defaultEmail;
       }
       if (typeof body.active === "boolean") {
         client.active = body.active;

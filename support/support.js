@@ -52,18 +52,37 @@ async function api(path, options = {}) {
   return data;
 }
 
+let currentClient = null;
+
+function applyContactPlaceholders(client) {
+  const nameInput = document.getElementById("requesterName");
+  const emailInput = document.getElementById("requesterEmail");
+  const defaultName = (client && client.defaultName) || (client && client.name) || "";
+  const defaultEmail = (client && client.defaultEmail) || "";
+  nameInput.placeholder = defaultName
+    ? `Optional — falls back to ${defaultName}`
+    : "Optional — falls back to account default";
+  emailInput.placeholder = defaultEmail
+    ? `Optional — falls back to ${defaultEmail}`
+    : "Optional — falls back to account default";
+}
+
 function showLoggedIn(client) {
+  currentClient = client || null;
   els.loginView.classList.add("hidden");
   els.appView.classList.remove("hidden");
   els.logoutBtn.classList.remove("hidden");
   els.subtitle.textContent = client ? `${client.name} · submit and track requests` : "Signed in";
+  applyContactPlaceholders(client);
 }
 
 function showLoggedOut() {
+  currentClient = null;
   els.loginView.classList.remove("hidden");
   els.appView.classList.add("hidden");
   els.logoutBtn.classList.add("hidden");
   els.subtitle.textContent = "Sign in to submit and track requests";
+  applyContactPlaceholders(null);
 }
 
 function renderTickets(tickets) {
@@ -166,6 +185,7 @@ els.createForm.addEventListener("submit", async (e) => {
       body: JSON.stringify(payload),
     });
     els.createForm.reset();
+    applyContactPlaceholders(currentClient);
     setStatus(
       els.createStatus,
       `Submitted. Track link: ${data.trackUrl}`,

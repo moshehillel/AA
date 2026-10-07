@@ -68,6 +68,17 @@
               <label for="clientPassword">Password</label>
               <input id="clientPassword" name="password" type="password" required minlength="6" />
             </div>
+            <div class="field">
+              <label for="clientDefaultName">Default contact name</label>
+              <input id="clientDefaultName" name="defaultName" placeholder="Jordan Lee" />
+            </div>
+            <div class="field">
+              <label for="clientDefaultEmail">Default contact email</label>
+              <input id="clientDefaultEmail" name="defaultEmail" type="email" placeholder="ops@acme.com" />
+            </div>
+            <p class="muted" style="margin-bottom: 0.85rem; font-size: 0.85rem;">
+              Used when a ticket is submitted without name/email.
+            </p>
             <button class="btn primary" type="submit">Add client</button>
           </form>
           <p class="status" id="clientFormStatus"></p>

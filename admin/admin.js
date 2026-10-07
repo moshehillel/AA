@@ -191,7 +191,7 @@ function renderClients() {
   els.clientList.innerHTML = `
     <table class="table">
       <thead>
-        <tr><th>Name</th><th>Slug</th><th>Status</th><th></th></tr>
+        <tr><th>Name</th><th>Slug</th><th>Default contact</th><th>Status</th><th></th></tr>
       </thead>
       <tbody>
         ${state.clients
@@ -200,8 +200,10 @@ function renderClients() {
           <tr>
             <td>${escapeHtml(c.name)}</td>
             <td><code>${escapeHtml(c.slug)}</code></td>
+            <td class="meta">${escapeHtml(c.defaultName || "—")}<br>${escapeHtml(c.defaultEmail || "—")}</td>
             <td>${c.active ? '<span class="badge open">active</span>' : '<span class="badge inactive">disabled</span>'}</td>
             <td class="actions">
+              <button class="btn" type="button" data-action="defaults" data-slug="${escapeHtml(c.slug)}">Edit defaults</button>
               <button class="btn" type="button" data-action="toggle" data-slug="${escapeHtml(c.slug)}" data-active="${c.active ? "1" : "0"}">${c.active ? "Disable" : "Enable"}</button>
               <button class="btn" type="button" data-action="reset" data-slug="${escapeHtml(c.slug)}">Reset password</button>
             </td>
@@ -215,6 +217,7 @@ function renderClients() {
   els.clientList.querySelectorAll("button[data-action]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const slug = btn.dataset.slug;
+      const client = state.clients.find((c) => c.slug === slug);
       try {
         if (btn.dataset.action === "toggle") {
           const active = btn.dataset.active !== "1";
@@ -223,6 +226,22 @@ function renderClients() {
             body: JSON.stringify({ slug, active }),
           });
           setStatus(els.globalStatus, active ? "Client enabled." : "Client disabled.", "ok");
+        } else if (btn.dataset.action === "defaults") {
+          const defaultName = prompt(
+            `Default contact name for ${slug}`,
+            (client && client.defaultName) || ""
+          );
+          if (defaultName === null) return;
+          const defaultEmail = prompt(
+            `Default contact email for ${slug}`,
+            (client && client.defaultEmail) || ""
+          );
+          if (defaultEmail === null) return;
+          await api("admin-clients", {
+            method: "PATCH",
+            body: JSON.stringify({ slug, defaultName, defaultEmail }),
+          });
+          setStatus(els.globalStatus, "Default contact updated.", "ok");
         } else {
           const password = prompt(`New password for ${slug}`);
           if (!password) return;
@@ -313,11 +332,13 @@ els.addClientForm.addEventListener("submit", async (e) => {
   const name = els.clientName.value.trim();
   const slug = slugify(els.clientSlug.value.trim());
   const password = document.getElementById("clientPassword").value;
+  const defaultName = document.getElementById("clientDefaultName").value.trim();
+  const defaultEmail = document.getElementById("clientDefaultEmail").value.trim();
   try {
     setStatus(els.clientFormStatus, "Saving…");
     await api("admin-clients", {
       method: "POST",
-      body: JSON.stringify({ name, slug, password }),
+      body: JSON.stringify({ name, slug, password, defaultName, defaultEmail }),
     });
     els.addClientForm.reset();
     delete els.clientSlug.dataset.touched;
