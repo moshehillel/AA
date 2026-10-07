@@ -9,6 +9,10 @@ const state = {
 };
 
 const els = {
+  loginView: document.getElementById("loginView"),
+  appView: document.getElementById("appView"),
+  adminLoginForm: document.getElementById("adminLoginForm"),
+  loginStatus: document.getElementById("loginStatus"),
   globalStatus: document.getElementById("globalStatus"),
   ticketList: document.getElementById("ticketList"),
   ticketDetail: document.getElementById("ticketDetail"),
@@ -21,6 +25,7 @@ const els = {
   clientSlug: document.getElementById("clientSlug"),
   clientFormStatus: document.getElementById("clientFormStatus"),
   refreshBtn: document.getElementById("refreshBtn"),
+  logoutBtn: document.getElementById("logoutBtn"),
 };
 
 function setStatus(el, message, type = "") {
@@ -294,6 +299,16 @@ async function loadClients() {
   renderClients();
 }
 
+function showLoggedIn() {
+  els.loginView.classList.add("hidden");
+  els.appView.classList.remove("hidden");
+}
+
+function showLoggedOut() {
+  els.loginView.classList.remove("hidden");
+  els.appView.classList.add("hidden");
+}
+
 async function refresh() {
   try {
     setStatus(els.globalStatus, "Loading…");
@@ -301,7 +316,29 @@ async function refresh() {
     else await loadClients();
     setStatus(els.globalStatus, "");
   } catch (error) {
+    if (error.status === 401) {
+      showLoggedOut();
+      setStatus(els.loginStatus, "Please sign in.", "error");
+      return;
+    }
     setStatus(els.globalStatus, error.message, "error");
+  }
+}
+
+async function bootstrap() {
+  try {
+    const me = await api("admin-me");
+    if (me.authenticated) {
+      showLoggedIn();
+      await refresh();
+    } else {
+      showLoggedOut();
+    }
+  } catch (error) {
+    showLoggedOut();
+    if (error.status && error.status !== 401) {
+      setStatus(els.loginStatus, error.message, "error");
+    }
   }
 }
 
@@ -362,4 +399,31 @@ els.addClientForm.addEventListener("submit", async (e) => {
 
 els.refreshBtn.addEventListener("click", refresh);
 
-refresh();
+els.adminLoginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const password = document.getElementById("adminPassword").value;
+  try {
+    setStatus(els.loginStatus, "Signing in…");
+    await api("admin-login", {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    });
+    document.getElementById("adminPassword").value = "";
+    setStatus(els.loginStatus, "");
+    showLoggedIn();
+    await refresh();
+  } catch (error) {
+    setStatus(els.loginStatus, error.message, "error");
+  }
+});
+
+els.logoutBtn.addEventListener("click", async () => {
+  try {
+    await api("admin-logout", { method: "POST", body: "{}" });
+  } catch {
+    // ignore
+  }
+  showLoggedOut();
+});
+
+bootstrap();

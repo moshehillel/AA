@@ -8,9 +8,7 @@ exports.handler = async (event) => {
     initBlobs(event);
     const admin = requireAdmin(event);
     if (!admin.ok) {
-      return json(admin.status, { error: admin.error }, admin.status === 401 ? {
-        "WWW-Authenticate": 'Basic realm="AA Admin", charset="UTF-8"',
-      } : {});
+      return json(admin.status, { error: admin.error });
     }
 
     if (event.httpMethod === "GET") {

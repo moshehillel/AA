@@ -4,6 +4,7 @@ const { getClient } = require("./store");
 const { verifyPassword } = require("./passwords");
 
 const COOKIE_NAME = "aa_support_session";
+const ADMIN_COOKIE_NAME = "aa_admin_session";
 const SESSION_DAYS = 14;
 
 function timingSafeEqualString(a, b) {
@@ -13,12 +14,76 @@ function timingSafeEqualString(a, b) {
   return crypto.timingSafeEqual(aBuf, bBuf);
 }
 
-function requireAdmin(event) {
+function sessionSecret() {
+  return process.env.SESSION_SECRET || process.env.ADMIN_PASSWORD || "";
+}
+
+function signPayload(payloadB64) {
+  const secret = sessionSecret();
+  if (!secret) return null;
+  return crypto.createHmac("sha256", secret).update(payloadB64).digest("base64url");
+}
+
+function parseCookies(event) {
+  const raw = getHeader(event, "cookie") || "";
+  const out = {};
+  for (const part of raw.split(";")) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq === -1) continue;
+    out[trimmed.slice(0, eq)] = decodeURIComponent(trimmed.slice(eq + 1));
+  }
+  return out;
+}
+
+function createRoleSessionToken(role) {
+  const secret = sessionSecret();
+  if (!secret) return null;
+  const exp = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;
+  const payloadB64 = Buffer.from(JSON.stringify({ role, exp }), "utf8").toString("base64url");
+  const sig = signPayload(payloadB64);
+  return `${payloadB64}.${sig}`;
+}
+
+function readRoleSession(event, cookieName, expectedRole) {
+  const cookies = parseCookies(event);
+  const token = cookies[cookieName];
+  if (!token || !token.includes(".")) return null;
+  const [payloadB64, sig] = token.split(".");
+  const expected = signPayload(payloadB64);
+  if (!expected || !timingSafeEqualString(sig, expected)) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
+    if (!payload.exp || Date.now() > payload.exp) return null;
+    if (expectedRole && payload.role !== expectedRole) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+function roleSessionCookie(cookieName, token, { clear = false, secure = true } = {}) {
+  const securePart = secure ? "; Secure" : "";
+  if (clear) {
+    return `${cookieName}=; Path=/; HttpOnly${securePart}; SameSite=Lax; Max-Age=0`;
+  }
+  const maxAge = SESSION_DAYS * 24 * 60 * 60;
+  return `${cookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly${securePart}; SameSite=Lax; Max-Age=${maxAge}`;
+}
+
+function checkAdminPassword(password) {
   const expected = process.env.ADMIN_PASSWORD;
   if (!expected) {
     return { ok: false, status: 503, error: "Admin is not configured yet (ADMIN_PASSWORD)." };
   }
+  if (!password || !timingSafeEqualString(String(password), expected)) {
+    return { ok: false, status: 401, error: "Invalid password." };
+  }
+  return { ok: true };
+}
 
+function requireAdminBasic(event) {
   const header = getHeader(event, "authorization");
   if (!header || !header.startsWith("Basic ")) {
     return { ok: false, status: 401, error: "Authentication required." };
@@ -37,21 +102,36 @@ function requireAdmin(event) {
   }
 
   const password = decoded.slice(separatorIndex + 1);
-  if (!timingSafeEqualString(password, expected)) {
-    return { ok: false, status: 401, error: "Invalid password." };
+  return checkAdminPassword(password);
+}
+
+function requireAdmin(event) {
+  if (!process.env.ADMIN_PASSWORD) {
+    return { ok: false, status: 503, error: "Admin is not configured yet (ADMIN_PASSWORD)." };
   }
 
-  return { ok: true };
+  // Prefer signed admin session cookie (works with fetch from /admin UI).
+  const session = readRoleSession(event, ADMIN_COOKIE_NAME, "admin");
+  if (session) return { ok: true, via: "cookie" };
+
+  // Still accept Basic Auth for manual/API use.
+  const basic = requireAdminBasic(event);
+  if (basic.ok) return { ok: true, via: "basic" };
+  return basic;
 }
 
-function sessionSecret() {
-  return process.env.SESSION_SECRET || process.env.ADMIN_PASSWORD || "";
+function loginAdmin(password) {
+  const check = checkAdminPassword(password);
+  if (!check.ok) return check;
+  const token = createRoleSessionToken("admin");
+  if (!token) {
+    return { ok: false, status: 503, error: "SESSION_SECRET is not configured." };
+  }
+  return { ok: true, token };
 }
 
-function signPayload(payloadB64) {
-  const secret = sessionSecret();
-  if (!secret) return null;
-  return crypto.createHmac("sha256", secret).update(payloadB64).digest("base64url");
+function adminSessionCookie(token, options = {}) {
+  return roleSessionCookie(ADMIN_COOKIE_NAME, token, options);
 }
 
 function createSessionToken(slug) {
@@ -61,19 +141,6 @@ function createSessionToken(slug) {
   const payloadB64 = Buffer.from(JSON.stringify({ slug, exp }), "utf8").toString("base64url");
   const sig = signPayload(payloadB64);
   return `${payloadB64}.${sig}`;
-}
-
-function parseCookies(event) {
-  const raw = getHeader(event, "cookie") || "";
-  const out = {};
-  for (const part of raw.split(";")) {
-    const trimmed = part.trim();
-    if (!trimmed) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq === -1) continue;
-    out[trimmed.slice(0, eq)] = decodeURIComponent(trimmed.slice(eq + 1));
-  }
-  return out;
 }
 
 function readSession(event) {
@@ -93,12 +160,7 @@ function readSession(event) {
 }
 
 function sessionCookie(token, { clear = false, secure = true } = {}) {
-  const securePart = secure ? "; Secure" : "";
-  if (clear) {
-    return `${COOKIE_NAME}=; Path=/; HttpOnly${securePart}; SameSite=Lax; Max-Age=0`;
-  }
-  const maxAge = SESSION_DAYS * 24 * 60 * 60;
-  return `${COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly${securePart}; SameSite=Lax; Max-Age=${maxAge}`;
+  return roleSessionCookie(COOKIE_NAME, token, { clear, secure });
 }
 
 async function requireClientSession(event) {
@@ -130,9 +192,12 @@ async function loginClient(slug, password) {
 
 module.exports = {
   COOKIE_NAME,
+  ADMIN_COOKIE_NAME,
   requireAdmin,
   requireClientSession,
   loginClient,
+  loginAdmin,
   sessionCookie,
+  adminSessionCookie,
   readSession,
 };

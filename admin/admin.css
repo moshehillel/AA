@@ -44,6 +44,11 @@ body::before {
   padding: 1.25rem 1.5rem 3rem;
 }
 
+.login-panel {
+  margin: 8vh auto 0;
+  max-width: 420px;
+}
+
 .topbar {
   align-items: center;
   display: flex;

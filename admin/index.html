@@ -11,6 +11,26 @@
 </head>
 <body>
   <div class="shell">
+    <section id="loginView" class="login-panel panel">
+      <div class="brand" style="margin-bottom: 1.25rem;">
+        <img src="/Images/AA-Logo.png" alt="Advanced Automations" />
+        <div>
+          <div class="brand-kicker">Advanced Automations</div>
+          <h1>Support Admin</h1>
+          <p>Sign in with your admin password</p>
+        </div>
+      </div>
+      <form id="adminLoginForm">
+        <div class="field">
+          <label for="adminPassword">Admin password</label>
+          <input id="adminPassword" type="password" required autocomplete="current-password" />
+        </div>
+        <button class="btn primary" type="submit">Sign in</button>
+      </form>
+      <p class="status" id="loginStatus"></p>
+    </section>
+
+    <div id="appView" class="hidden">
     <header class="topbar">
       <div class="brand">
         <img src="/Images/AA-Logo.png" alt="Advanced Automations" />
@@ -20,7 +40,10 @@
           <p>Tickets and client access</p>
         </div>
       </div>
-      <button class="btn ghost" type="button" id="refreshBtn">Refresh</button>
+      <div class="actions">
+        <button class="btn ghost" type="button" id="refreshBtn">Refresh</button>
+        <button class="btn ghost" type="button" id="logoutBtn">Sign out</button>
+      </div>
     </header>
 
     <nav class="tabs">
@@ -91,6 +114,7 @@
         </div>
       </div>
     </section>
+    </div>
   </div>
   <script src="./admin.js"></script>
 </body>
