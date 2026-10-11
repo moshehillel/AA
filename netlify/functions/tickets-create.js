@@ -1,8 +1,9 @@
 const { json, parseBody, methodNotAllowed, siteOrigin } = require("./_lib/http");
 const { requireClientSession } = require("./_lib/auth");
-const { initBlobs, saveTicket, publicTicket } = require("./_lib/store");
+const { initBlobs, saveTicket, saveAttachmentBinary, publicTicket } = require("./_lib/store");
 const { randomToken } = require("./_lib/passwords");
 const { notifyTicketCreated } = require("./_lib/email");
+const { parseIncomingAttachments, publicAttachmentMeta } = require("./_lib/attachments");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return methodNotAllowed();
@@ -23,8 +24,16 @@ exports.handler = async (event) => {
       String(body.requesterEmail || "").trim() ||
       String(auth.client.defaultEmail || "").trim();
 
-    if (!subject || !message) {
-      return json(400, { error: "Subject and message are required." });
+    const parsedAttachments = parseIncomingAttachments(body.attachments);
+    if (!parsedAttachments.ok) {
+      return json(400, { error: parsedAttachments.error });
+    }
+
+    if (!subject) {
+      return json(400, { error: "Subject is required." });
+    }
+    if (!message && !parsedAttachments.files.length) {
+      return json(400, { error: "Message or attachment is required." });
     }
     if (!requesterName) {
       return json(400, {
@@ -41,8 +50,16 @@ exports.handler = async (event) => {
     }
 
     const now = new Date().toISOString();
+    const ticketId = randomToken(12);
+    const messageId = randomToken(8);
+    const attachments = parsedAttachments.files.map(publicAttachmentMeta);
+
+    for (const file of parsedAttachments.files) {
+      await saveAttachmentBinary(ticketId, file);
+    }
+
     const ticket = {
-      id: randomToken(12),
+      id: ticketId,
       trackToken: randomToken(24),
       clientSlug: auth.client.slug,
       clientName: auth.client.name,
@@ -52,10 +69,11 @@ exports.handler = async (event) => {
       status: "open",
       messages: [
         {
-          id: randomToken(8),
+          id: messageId,
           author: "client",
-          body: message,
+          body: message || "(Attachment only)",
           createdAt: now,
+          attachments,
         },
       ],
       createdAt: now,

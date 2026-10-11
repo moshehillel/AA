@@ -274,14 +274,17 @@ els.logoutBtn.addEventListener("click", async () => {
 
 els.createForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const payload = {
-    requesterName: document.getElementById("requesterName").value.trim(),
-    requesterEmail: document.getElementById("requesterEmail").value.trim(),
-    subject: document.getElementById("subject").value.trim(),
-    message: document.getElementById("message").value.trim(),
-  };
+  const fileInput = document.getElementById("attachments");
   try {
     els.createStatus.innerHTML = `<p class="status">Submitting…</p>`;
+    const attachments = await window.TicketAttachments.filesFromInput(fileInput);
+    const payload = {
+      requesterName: document.getElementById("requesterName").value.trim(),
+      requesterEmail: document.getElementById("requesterEmail").value.trim(),
+      subject: document.getElementById("subject").value.trim(),
+      message: document.getElementById("message").value.trim(),
+      attachments,
+    };
     const data = await api("tickets-create", {
       method: "POST",
       body: JSON.stringify(payload),

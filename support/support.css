@@ -720,6 +720,67 @@ textarea {
   .portal-hero .btn { width: 100%; }
 }
 
+/* —— Attachments —— */
+.field-hint {
+  color: var(--muted-2);
+  font-size: 0.78rem;
+  margin-top: 0.35rem;
+}
+
+input[type="file"] {
+  background: #f8fafc;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.88rem;
+  padding: 0.85rem;
+  width: 100%;
+}
+
+.attach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.attach-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: block;
+  overflow: hidden;
+  max-width: 320px;
+}
+
+.attach-card img {
+  background: #f1f5f9;
+  display: block;
+  max-height: 220px;
+  object-fit: contain;
+  width: 100%;
+}
+
+.attach-card span,
+.attach-file {
+  color: var(--ink-soft);
+  display: block;
+  font-size: 0.8rem;
+  padding: 0.45rem 0.65rem;
+}
+
+.attach-file {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  max-width: 360px;
+}
+
+.attach-file:hover,
+.attach-card:hover {
+  border-color: rgba(14, 165, 183, 0.45);
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }

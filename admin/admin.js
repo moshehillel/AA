@@ -121,6 +121,7 @@ function renderTicketDetail() {
       <div class="bubble ${m.author}">
         <div class="who">${m.author === "admin" ? "You" : "Client"} · ${formatWhen(m.createdAt)}</div>
         <div>${escapeHtml(m.body)}</div>
+        ${window.TicketAttachments.renderAttachmentsHtml(t, m)}
       </div>`
     )
     .join("");
@@ -144,7 +145,11 @@ function renderTicketDetail() {
     <form id="replyForm">
       <div class="field">
         <label for="replyBody">Reply</label>
-        <textarea id="replyBody" required placeholder="Write a reply..."></textarea>
+        <textarea id="replyBody" placeholder="Write a reply..."></textarea>
+      </div>
+      <div class="field">
+        <label for="replyAttachments">Attach file or screenshot</label>
+        <input id="replyAttachments" type="file" accept="image/*,.pdf,.txt,application/pdf,text/plain" multiple />
       </div>
       <button class="btn primary" type="submit">Send reply</button>
     </form>
@@ -175,11 +180,16 @@ function renderTicketDetail() {
     e.preventDefault();
     const detailStatus = document.getElementById("detailStatus");
     const body = document.getElementById("replyBody").value.trim();
+    const fileInput = document.getElementById("replyAttachments");
     try {
       setStatus(detailStatus, "Sending…");
+      const attachments = await window.TicketAttachments.filesFromInput(fileInput);
+      if (!body && !attachments.length) {
+        throw new Error("Add a message or attachment.");
+      }
       const data = await api("tickets-reply", {
         method: "POST",
-        body: JSON.stringify({ id: t.id, message: body }),
+        body: JSON.stringify({ id: t.id, message: body, attachments }),
       });
       upsertTicket(data.ticket);
       renderTicketList();

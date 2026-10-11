@@ -302,3 +302,50 @@ textarea { min-height: 110px; resize: vertical; }
 }
 
 .muted { color: var(--muted); }
+
+.attach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+}
+
+.attach-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: block;
+  max-width: 280px;
+  overflow: hidden;
+}
+
+.attach-card img {
+  background: #f1f5f9;
+  display: block;
+  max-height: 180px;
+  object-fit: contain;
+  width: 100%;
+}
+
+.attach-card span,
+.attach-file {
+  color: var(--ink-soft);
+  display: block;
+  font-size: 0.78rem;
+  padding: 0.4rem 0.55rem;
+}
+
+.attach-file {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+input[type="file"] {
+  background: #f8fafc;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  padding: 0.7rem;
+  width: 100%;
+}

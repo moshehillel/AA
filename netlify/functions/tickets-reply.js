@@ -5,10 +5,12 @@ const {
   getTicketById,
   getTicketByToken,
   saveTicket,
+  saveAttachmentBinary,
   publicTicket,
 } = require("./_lib/store");
 const { randomToken } = require("./_lib/passwords");
 const { notifyTicketUpdate } = require("./_lib/email");
+const { parseIncomingAttachments, publicAttachmentMeta } = require("./_lib/attachments");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return methodNotAllowed();
@@ -17,7 +19,13 @@ exports.handler = async (event) => {
     initBlobs(event);
     const body = parseBody(event);
     const message = String(body.message || "").trim();
-    if (!message) return json(400, { error: "Message is required." });
+    const parsedAttachments = parseIncomingAttachments(body.attachments);
+    if (!parsedAttachments.ok) {
+      return json(400, { error: parsedAttachments.error });
+    }
+    if (!message && !parsedAttachments.files.length) {
+      return json(400, { error: "Message or attachment is required." });
+    }
 
     let ticket = null;
     let author = null;
@@ -45,19 +53,24 @@ exports.handler = async (event) => {
     }
 
     if (ticket.status === "done" && author === "client") {
-      // Allow client follow-up to reopen
       ticket.status = "open";
     } else if (author === "admin" && ticket.status === "open") {
       ticket.status = "in_progress";
     }
 
     const now = new Date().toISOString();
+    const attachments = parsedAttachments.files.map(publicAttachmentMeta);
+    for (const file of parsedAttachments.files) {
+      await saveAttachmentBinary(ticket.id, file);
+    }
+
     ticket.messages = ticket.messages || [];
     ticket.messages.push({
       id: randomToken(8),
       author,
-      body: message,
+      body: message || "(Attachment only)",
       createdAt: now,
+      attachments,
     });
     ticket.updatedAt = now;
     await saveTicket(ticket);
@@ -69,7 +82,7 @@ exports.handler = async (event) => {
           ticket,
           trackUrl,
           kind: "reply",
-          body: message,
+          body: message || "Sent an attachment",
         });
       } catch (emailError) {
         console.error("tickets-reply email error:", emailError);

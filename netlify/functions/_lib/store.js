@@ -96,6 +96,53 @@ async function storeSetText(storeName, key, value) {
   fs.writeFileSync(full, JSON.stringify(value), "utf8");
 }
 
+function binaryPaths(storeName, key) {
+  const base = path.join(FILE_ROOT, storeName, encodeKey(key));
+  return { bin: `${base}.bin`, meta: `${base}.meta.json` };
+}
+
+async function storeSetBinary(storeName, key, buffer, contentType) {
+  if (detectMode() === "blobs") {
+    await getStore(storeName).set(key, buffer, {
+      metadata: { contentType: String(contentType || "application/octet-stream") },
+    });
+    return;
+  }
+  const { bin, meta } = binaryPaths(storeName, key);
+  ensureDir(path.dirname(bin));
+  fs.writeFileSync(bin, buffer);
+  fs.writeFileSync(
+    meta,
+    JSON.stringify({ contentType: String(contentType || "application/octet-stream") }),
+    "utf8"
+  );
+}
+
+async function storeGetBinary(storeName, key) {
+  if (detectMode() === "blobs") {
+    const store = getStore(storeName);
+    const withMeta = await store.getWithMetadata(key, { type: "arrayBuffer" });
+    if (!withMeta || withMeta.data == null) return null;
+    const buffer = Buffer.from(withMeta.data);
+    const contentType =
+      (withMeta.metadata && withMeta.metadata.contentType) || "application/octet-stream";
+    return { buffer, contentType };
+  }
+  const { bin, meta } = binaryPaths(storeName, key);
+  if (!fs.existsSync(bin)) return null;
+  const buffer = fs.readFileSync(bin);
+  let contentType = "application/octet-stream";
+  if (fs.existsSync(meta)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(meta, "utf8"));
+      if (parsed.contentType) contentType = parsed.contentType;
+    } catch {
+      // ignore
+    }
+  }
+  return { buffer, contentType };
+}
+
 async function storeListKeys(storeName) {
   if (detectMode() === "blobs") {
     const { blobs } = await getStore(storeName).list();
@@ -163,6 +210,30 @@ async function saveTicket(ticket) {
   return ticket;
 }
 
+const ATTACHMENTS = "support-attachments";
+
+function attachmentKey(ticketId, attachmentId) {
+  return `${ticketId}:${attachmentId}`;
+}
+
+async function saveAttachmentBinary(ticketId, file) {
+  await storeSetBinary(ATTACHMENTS, attachmentKey(ticketId, file.id), file.buffer, file.contentType);
+}
+
+async function getAttachmentBinary(ticketId, attachmentId) {
+  return storeGetBinary(ATTACHMENTS, attachmentKey(ticketId, attachmentId));
+}
+
+function findAttachmentOnTicket(ticket, attachmentId) {
+  if (!ticket || !attachmentId) return null;
+  for (const message of ticket.messages || []) {
+    for (const att of message.attachments || []) {
+      if (att.id === attachmentId) return att;
+    }
+  }
+  return null;
+}
+
 function publicTicket(ticket) {
   if (!ticket) return null;
   return {
@@ -201,6 +272,9 @@ module.exports = {
   getTicketById,
   getTicketByToken,
   saveTicket,
+  saveAttachmentBinary,
+  getAttachmentBinary,
+  findAttachmentOnTicket,
   publicTicket,
   publicClient,
 };

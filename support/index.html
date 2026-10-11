@@ -123,12 +123,18 @@
           <label for="message">Message</label>
           <textarea id="message" required placeholder="What happened, what you expected, and any useful details…"></textarea>
         </div>
+        <div class="field">
+          <label for="attachments">Attach file or screenshot <span class="opt">(optional · up to 3 · 3MB each)</span></label>
+          <input id="attachments" type="file" accept="image/*,.pdf,.txt,application/pdf,text/plain" multiple />
+          <p class="field-hint" id="attachmentHint">PNG, JPG, WEBP, GIF, PDF, or TXT</p>
+        </div>
         <button class="btn btn-primary btn-block" type="submit">Submit ticket</button>
       </form>
       <div id="createStatus"></div>
     </div>
   </div>
 
+  <script src="./attach.js"></script>
   <script src="./support.js"></script>
 </body>
 </html>
