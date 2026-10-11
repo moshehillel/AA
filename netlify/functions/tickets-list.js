@@ -10,6 +10,19 @@ exports.handler = async (event) => {
     const params = event.queryStringParameters || {};
     const status = params.status ? String(params.status) : null;
 
+    // Prefer client session when present so an leftover admin cookie in the
+    // same browser cannot expose every client's tickets on /support/.
+    const clientAuth = await requireClientSession(event);
+    if (clientAuth.ok) {
+      let tickets = (await listTickets()).filter(
+        (t) => t.clientSlug === clientAuth.client.slug
+      );
+      if (status && status !== "all") {
+        tickets = tickets.filter((t) => t.status === status);
+      }
+      return json(200, { tickets: tickets.map(publicTicket), role: "client" });
+    }
+
     const admin = requireAdmin(event);
     if (admin.ok) {
       let tickets = await listTickets();
@@ -22,18 +35,7 @@ exports.handler = async (event) => {
       return json(200, { tickets: tickets.map(publicTicket), role: "admin" });
     }
 
-    const clientAuth = await requireClientSession(event);
-    if (!clientAuth.ok) {
-      return json(401, { error: "Authentication required." });
-    }
-
-    let tickets = (await listTickets()).filter(
-      (t) => t.clientSlug === clientAuth.client.slug
-    );
-    if (status && status !== "all") {
-      tickets = tickets.filter((t) => t.status === status);
-    }
-    return json(200, { tickets: tickets.map(publicTicket), role: "client" });
+    return json(401, { error: "Authentication required." });
   } catch (error) {
     console.error("tickets-list error:", error);
     return json(500, { error: "Internal server error" });

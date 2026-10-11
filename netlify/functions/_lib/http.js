@@ -1,13 +1,27 @@
 function json(statusCode, body, extraHeaders = {}) {
-  return {
+  const headers = {
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store",
+  };
+  const multiValueHeaders = {};
+
+  for (const [key, value] of Object.entries(extraHeaders)) {
+    if (Array.isArray(value)) {
+      multiValueHeaders[key] = value;
+    } else {
+      headers[key] = value;
+    }
+  }
+
+  const response = {
     statusCode,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store",
-      ...extraHeaders,
-    },
+    headers,
     body: JSON.stringify(body),
   };
+  if (Object.keys(multiValueHeaders).length) {
+    response.multiValueHeaders = multiValueHeaders;
+  }
+  return response;
 }
 
 function parseBody(event) {

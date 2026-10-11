@@ -1,5 +1,5 @@
 const { json, parseBody, methodNotAllowed, getHeader } = require("./_lib/http");
-const { loginAdmin, adminSessionCookie } = require("./_lib/auth");
+const { loginAdmin, adminSessionCookie, sessionCookie } = require("./_lib/auth");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return methodNotAllowed();
@@ -17,10 +17,17 @@ exports.handler = async (event) => {
     }
 
     const proto = getHeader(event, "x-forwarded-proto") || "https";
+    const secure = proto === "https";
+    // Clear any client session when signing into admin.
     return json(
       200,
       { success: true, role: "admin" },
-      { "Set-Cookie": adminSessionCookie(result.token, { secure: proto === "https" }) }
+      {
+        "Set-Cookie": [
+          adminSessionCookie(result.token, { secure }),
+          sessionCookie("", { clear: true, secure }),
+        ],
+      }
     );
   } catch (error) {
     console.error("admin-login error:", error);
