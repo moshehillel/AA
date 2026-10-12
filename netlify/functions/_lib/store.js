@@ -156,6 +156,18 @@ async function storeListKeys(storeName) {
     .map((name) => decodeKey(name.slice(0, -5)));
 }
 
+async function storeDelete(storeName, key) {
+  if (detectMode() === "blobs") {
+    await getStore(storeName).delete(key);
+    return;
+  }
+  const full = encodedFilePath(storeName, key);
+  if (fs.existsSync(full)) fs.unlinkSync(full);
+  const { bin, meta } = binaryPaths(storeName, key);
+  if (fs.existsSync(bin)) fs.unlinkSync(bin);
+  if (fs.existsSync(meta)) fs.unlinkSync(meta);
+}
+
 const CLIENTS = "support-clients";
 const TICKETS = "support-tickets";
 
@@ -216,6 +228,28 @@ function attachmentKey(ticketId, attachmentId) {
   return `${ticketId}:${attachmentId}`;
 }
 
+async function deleteTicket(ticket) {
+  if (!ticket || !ticket.id) return false;
+  const attachmentIds = new Set();
+  for (const message of ticket.messages || []) {
+    for (const att of message.attachments || []) {
+      if (att && att.id) attachmentIds.add(att.id);
+    }
+  }
+  for (const attachmentId of attachmentIds) {
+    try {
+      await storeDelete(ATTACHMENTS, attachmentKey(ticket.id, attachmentId));
+    } catch (error) {
+      console.warn("attachment delete failed:", attachmentId, error);
+    }
+  }
+  if (ticket.trackToken) {
+    await storeDelete(TICKETS, `token:${ticket.trackToken}`);
+  }
+  await storeDelete(TICKETS, `id:${ticket.id}`);
+  return true;
+}
+
 async function saveAttachmentBinary(ticketId, file) {
   await storeSetBinary(ATTACHMENTS, attachmentKey(ticketId, file.id), file.buffer, file.contentType);
 }
@@ -272,6 +306,7 @@ module.exports = {
   getTicketById,
   getTicketByToken,
   saveTicket,
+  deleteTicket,
   saveAttachmentBinary,
   getAttachmentBinary,
   findAttachmentOnTicket,
