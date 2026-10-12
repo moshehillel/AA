@@ -15,14 +15,18 @@ function createTransport() {
   });
 }
 
+const DEFAULT_FROM =
+  '"Advanced Automations Support" <no-reply@advancedautomations.net>';
+
 async function sendMail({ to, subject, html }) {
   const transporter = createTransport();
   if (!transporter) {
     console.warn("Email skipped: GMAIL_USER / GMAIL_APP_PASSWORD not set");
     return { skipped: true };
   }
+  // Auth stays on GMAIL_USER; From uses the Gmail "Send mail as" alias.
   await transporter.sendMail({
-    from: process.env.GMAIL_USER,
+    from: process.env.MAIL_FROM || DEFAULT_FROM,
     to,
     subject,
     html,
