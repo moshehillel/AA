@@ -5,6 +5,8 @@ const state = {
   tickets: [],
   clients: [],
   selectedId: null,
+  // Full ticket currently open in the detail pane (keeps replies even if list filters change).
+  selectedTicket: null,
   statusFilter: "all",
 };
 
@@ -86,13 +88,13 @@ async function api(path, options = {}) {
 function visibleTickets() {
   // Filter the sidebar list, but always keep the open conversation visible
   // so replies stay on screen after Resolved / Waiting / etc.
-  const selected = state.tickets.find((t) => t.id === state.selectedId) || null;
+  const selected = selectedTicket();
   let list =
     state.statusFilter === "all"
       ? state.tickets.slice()
       : state.tickets.filter((t) => t.status === state.statusFilter);
 
-  if (selected && !list.some((t) => t.id === selected.id)) {
+  if (selected && !list.some((t) => String(t.id) === String(selected.id))) {
     list = [selected, ...list];
   }
   return list;
@@ -100,7 +102,7 @@ function visibleTickets() {
 
 function renderTicketList() {
   const tickets = visibleTickets();
-  if (!state.tickets.length) {
+  if (!state.tickets.length && !selectedTicket()) {
     els.ticketList.innerHTML = `<p class="muted">No tickets yet.</p>`;
     return;
   }
@@ -110,9 +112,9 @@ function renderTicketList() {
   }
   els.ticketList.innerHTML = tickets
     .map((t) => {
-      const active = t.id === state.selectedId ? "active" : "";
+      const active = String(t.id) === String(state.selectedId) ? "active" : "";
       return `
-        <button class="item ${active}" type="button" data-id="${t.id}">
+        <button class="item ${active}" type="button" data-id="${escapeHtml(t.id)}">
           <div class="detail-head">
             <h3>${escapeHtml(t.subject)}</h3>
             ${statusBadge(t.status)}
@@ -125,7 +127,50 @@ function renderTicketList() {
 }
 
 function selectedTicket() {
-  return state.tickets.find((t) => t.id === state.selectedId) || null;
+  if (state.selectedTicket && String(state.selectedTicket.id) === String(state.selectedId)) {
+    return state.selectedTicket;
+  }
+  const fromList = state.tickets.find((t) => String(t.id) === String(state.selectedId));
+  if (fromList) {
+    state.selectedTicket = fromList;
+    return fromList;
+  }
+  return state.selectedTicket || null;
+}
+
+function selectTicket(ticketOrId) {
+  if (ticketOrId && typeof ticketOrId === "object") {
+    state.selectedTicket = ticketOrId;
+    state.selectedId = ticketOrId.id;
+    upsertTicket(ticketOrId);
+    return;
+  }
+  state.selectedId = ticketOrId || null;
+  if (!ticketOrId) {
+    state.selectedTicket = null;
+    return;
+  }
+  const found = state.tickets.find((t) => String(t.id) === String(ticketOrId));
+  state.selectedTicket = found || state.selectedTicket;
+}
+
+function renderMessageBubble(ticket, message) {
+  const author = message && message.author === "admin" ? "admin" : "client";
+  const who = author === "admin" ? "You" : "Client";
+  let attachmentsHtml = "";
+  try {
+    if (window.TicketAttachments && window.TicketAttachments.renderAttachmentsHtml) {
+      attachmentsHtml = window.TicketAttachments.renderAttachmentsHtml(ticket, message) || "";
+    }
+  } catch {
+    attachmentsHtml = "";
+  }
+  return `
+    <div class="bubble ${author}">
+      <div class="who">${who} · ${formatWhen(message && message.createdAt)}</div>
+      <div class="bubble-body">${escapeHtml((message && message.body) || "")}</div>
+      ${attachmentsHtml}
+    </div>`;
 }
 
 function renderTicketDetail() {
@@ -135,16 +180,8 @@ function renderTicketDetail() {
     return;
   }
 
-  const messages = (t.messages || [])
-    .map(
-      (m) => `
-      <div class="bubble ${m.author === "admin" ? "admin" : "client"}">
-        <div class="who">${m.author === "admin" ? "You" : "Client"} · ${formatWhen(m.createdAt)}</div>
-        <div>${escapeHtml(m.body)}</div>
-        ${window.TicketAttachments.renderAttachmentsHtml(t, m)}
-      </div>`
-    )
-    .join("");
+  const messageList = Array.isArray(t.messages) ? t.messages : [];
+  const messages = messageList.map((m) => renderMessageBubble(t, m)).join("");
 
   els.ticketDetail.innerHTML = `
     <div class="detail-chrome">
@@ -187,9 +224,7 @@ function renderTicketDetail() {
           method: "POST",
           body: JSON.stringify({ id: t.id, status: btn.dataset.status }),
         });
-        ensureTicketVisible(data.ticket);
-        renderTicketList();
-        renderTicketDetail();
+        await showTicket(data.ticket || (await fetchTicket(t.id)));
         setStatus(els.globalStatus, "Status updated.", "ok");
       } catch (error) {
         setStatus(detailStatus, error.message, "error");
@@ -198,7 +233,11 @@ function renderTicketDetail() {
   });
 
   const threadEl = els.ticketDetail.querySelector(".thread");
-  if (threadEl) threadEl.scrollTop = threadEl.scrollHeight;
+  if (threadEl) {
+    requestAnimationFrame(() => {
+      threadEl.scrollTop = threadEl.scrollHeight;
+    });
+  }
 
   const replyForm = document.getElementById("replyForm");
   replyForm.addEventListener("submit", async (e) => {
@@ -216,9 +255,14 @@ function renderTicketDetail() {
         method: "POST",
         body: JSON.stringify({ id: t.id, message: body, attachments }),
       });
-      ensureTicketVisible(data.ticket);
-      renderTicketList();
-      renderTicketDetail();
+      // Prefer the API ticket (includes the new reply), then re-fetch to be sure.
+      await showTicket(data.ticket || (await fetchTicket(t.id)));
+      try {
+        const fresh = await fetchTicket(t.id);
+        if (fresh) await showTicket(fresh);
+      } catch {
+        // keep response ticket if refresh fails
+      }
       setStatus(els.globalStatus, "Reply sent.", "ok");
     } catch (error) {
       setStatus(detailStatus, error.message, "error");
@@ -227,17 +271,23 @@ function renderTicketDetail() {
 }
 
 function upsertTicket(ticket) {
-  const idx = state.tickets.findIndex((t) => t.id === ticket.id);
+  if (!ticket || !ticket.id) return;
+  const idx = state.tickets.findIndex((t) => String(t.id) === String(ticket.id));
   if (idx >= 0) state.tickets[idx] = ticket;
   else state.tickets.unshift(ticket);
   state.tickets.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
 }
 
-function ensureTicketVisible(ticket) {
+async function fetchTicket(id) {
+  const data = await api(`tickets-get?id=${encodeURIComponent(id)}`);
+  return data.ticket || null;
+}
+
+async function showTicket(ticket) {
   if (!ticket) return;
-  // Keep the open conversation selected after any status change so replies stay visible.
-  upsertTicket(ticket);
-  state.selectedId = ticket.id;
+  selectTicket(ticket);
+  renderTicketList();
+  renderTicketDetail();
 }
 
 function renderClients() {
@@ -328,8 +378,19 @@ function escapeHtml(value) {
 async function loadTickets() {
   // Always load the full set; status filtering is client-side so an open
   // ticket (and its replies) never disappear when status changes.
+  const selectedId = state.selectedId;
   const data = await api("tickets-list?status=all");
   state.tickets = data.tickets || [];
+  if (selectedId) {
+    const latest = state.tickets.find((t) => String(t.id) === String(selectedId));
+    if (latest) {
+      state.selectedTicket = latest;
+      state.selectedId = latest.id;
+    } else if (state.selectedTicket && String(state.selectedTicket.id) === String(selectedId)) {
+      // Keep the open conversation even if it briefly missing from the list payload.
+      upsertTicket(state.selectedTicket);
+    }
+  }
   renderTicketList();
   renderTicketDetail();
 }
@@ -400,12 +461,21 @@ els.statusFilter.addEventListener("change", () => {
   renderTicketDetail();
 });
 
-els.ticketList.addEventListener("click", (e) => {
+els.ticketList.addEventListener("click", async (e) => {
   const item = e.target.closest("[data-id]");
   if (!item) return;
-  state.selectedId = item.dataset.id;
+  const id = item.dataset.id;
+  selectTicket(id);
   renderTicketList();
   renderTicketDetail();
+  try {
+    const fresh = await fetchTicket(id);
+    if (fresh && String(state.selectedId) === String(id)) {
+      await showTicket(fresh);
+    }
+  } catch {
+    // keep list copy if single-ticket refresh fails
+  }
 });
 
 els.clientName.addEventListener("input", () => {

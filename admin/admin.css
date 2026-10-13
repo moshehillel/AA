@@ -353,6 +353,12 @@ textarea { min-height: 110px; resize: vertical; }
   white-space: normal;
 }
 
+.bubble-body {
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .status {
   color: var(--muted);
   font-size: 0.9rem;
