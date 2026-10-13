@@ -40,8 +40,14 @@ body::before {
 
 .shell {
   margin: 0 auto;
-  max-width: 1120px;
-  padding: 1.25rem 1.5rem 3rem;
+  max-width: 1480px;
+  padding: 1rem 1.25rem 1.5rem;
+}
+
+#appView {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 2rem);
 }
 
 .login-panel {
@@ -146,8 +152,78 @@ button:hover {
   grid-template-columns: 1.05fr 0.95fr;
 }
 
+.tickets-workspace {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-height: 0;
+}
+
+.tickets-toolbar {
+  flex: 0 0 auto;
+}
+
+.tickets-layout {
+  display: grid;
+  flex: 1;
+  gap: 1rem;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  min-height: calc(100vh - 210px);
+}
+
+.ticket-list-panel,
+.ticket-detail-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ticket-detail-panel {
+  padding: 0;
+}
+
+.ticket-detail-panel > .muted {
+  padding: 1.25rem;
+}
+
+.detail-chrome {
+  border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+  padding: 1.1rem 1.25rem 0.9rem;
+}
+
+.track-link {
+  margin: 0.65rem 0 0.75rem;
+}
+
+.status-actions {
+  margin: 0;
+}
+
+.reply-composer {
+  border-top: 1px solid var(--line);
+  flex: 0 0 auto;
+  padding: 1rem 1.25rem 1.15rem;
+}
+
+.reply-composer textarea {
+  min-height: 120px;
+}
+
+.ticket-detail-panel .status {
+  margin: 0;
+  padding: 0 1.25rem 1rem;
+}
+
 @media (max-width: 900px) {
   .grid-2 { grid-template-columns: 1fr; }
+  .tickets-layout {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+  .ticket-list-panel { max-height: 40vh; }
 }
 
 label {
@@ -190,10 +266,12 @@ textarea { min-height: 110px; resize: vertical; }
 
 .list {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 0.65rem;
-  max-height: 70vh;
+  min-height: 0;
   overflow: auto;
+  padding: 0.15rem;
 }
 
 .item {
@@ -239,28 +317,40 @@ textarea { min-height: 110px; resize: vertical; }
 .badge.inactive { background: rgba(192, 57, 43, 0.12); color: var(--danger); }
 
 .thread {
+  background:
+    linear-gradient(180deg, rgba(244, 247, 251, 0.65), rgba(255, 255, 255, 0.2));
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: 0.75rem;
-  margin: 1rem 0;
-  max-height: 360px;
+  gap: 0.85rem;
+  min-height: 280px;
   overflow: auto;
+  padding: 1.1rem 1.25rem;
 }
 
 .bubble {
   background: #f3f6f9;
   border-radius: 12px;
-  padding: 0.85rem 1rem;
+  max-width: min(720px, 92%);
+  padding: 0.95rem 1.05rem;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .bubble.admin {
-  background: rgba(36, 119, 255, 0.08);
+  align-self: flex-end;
+  background: rgba(36, 119, 255, 0.1);
+}
+
+.bubble.client {
+  align-self: flex-start;
 }
 
 .bubble .who {
   color: var(--muted);
   font-size: 0.75rem;
   margin-bottom: 0.35rem;
+  white-space: normal;
 }
 
 .status {

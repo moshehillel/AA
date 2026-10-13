@@ -127,22 +127,24 @@ function renderTicketDetail() {
     .join("");
 
   els.ticketDetail.innerHTML = `
-    <div class="detail-head">
-      <div>
-        <h2 style="font-size:1.1rem;margin-bottom:0.35rem;">${escapeHtml(t.subject)}</h2>
-        <div class="meta">${escapeHtml(t.clientName || t.clientSlug)} · ${escapeHtml(t.requesterName)} &lt;${escapeHtml(t.requesterEmail)}&gt;</div>
+    <div class="detail-chrome">
+      <div class="detail-head">
+        <div>
+          <h2 style="font-size:1.15rem;margin-bottom:0.35rem;">${escapeHtml(t.subject)}</h2>
+          <div class="meta">${escapeHtml(t.clientName || t.clientSlug)} · ${escapeHtml(t.requesterName)} &lt;${escapeHtml(t.requesterEmail)}&gt;</div>
+        </div>
+        ${statusBadge(t.status)}
       </div>
-      ${statusBadge(t.status)}
+      <p class="meta track-link">Track: <a href="/t/${encodeURIComponent(t.trackToken)}/" target="_blank" rel="noopener">/t/${escapeHtml(t.trackToken)}/</a></p>
+      <div class="actions status-actions">
+        <button class="btn" type="button" data-status="open">Open</button>
+        <button class="btn" type="button" data-status="in_progress">In progress</button>
+        <button class="btn" type="button" data-status="waiting_on_customer">Waiting for customer</button>
+        <button class="btn primary" type="button" data-status="done">Mark resolved</button>
+      </div>
     </div>
-    <p class="meta" style="margin:0.75rem 0;">Track: <a href="/t/${encodeURIComponent(t.trackToken)}/" target="_blank" rel="noopener">/t/${escapeHtml(t.trackToken)}/</a></p>
-    <div class="actions" style="margin-bottom:1rem;">
-      <button class="btn" type="button" data-status="open">Open</button>
-      <button class="btn" type="button" data-status="in_progress">In progress</button>
-      <button class="btn" type="button" data-status="waiting_on_customer">Waiting for customer</button>
-      <button class="btn primary" type="button" data-status="done">Mark resolved</button>
-    </div>
-    <div class="thread">${messages}</div>
-    <form id="replyForm">
+    <div class="thread">${messages || '<p class="muted">No messages yet.</p>'}</div>
+    <form id="replyForm" class="reply-composer">
       <div class="field">
         <label for="replyBody">Reply</label>
         <textarea id="replyBody" placeholder="Write a reply..."></textarea>
@@ -165,7 +167,7 @@ function renderTicketDetail() {
           method: "POST",
           body: JSON.stringify({ id: t.id, status: btn.dataset.status }),
         });
-        upsertTicket(data.ticket);
+        ensureTicketVisible(data.ticket);
         renderTicketList();
         renderTicketDetail();
         setStatus(els.globalStatus, "Status updated.", "ok");
@@ -174,6 +176,9 @@ function renderTicketDetail() {
       }
     });
   });
+
+  const threadEl = els.ticketDetail.querySelector(".thread");
+  if (threadEl) threadEl.scrollTop = threadEl.scrollHeight;
 
   const replyForm = document.getElementById("replyForm");
   replyForm.addEventListener("submit", async (e) => {
@@ -191,7 +196,7 @@ function renderTicketDetail() {
         method: "POST",
         body: JSON.stringify({ id: t.id, message: body, attachments }),
       });
-      upsertTicket(data.ticket);
+      ensureTicketVisible(data.ticket);
       renderTicketList();
       renderTicketDetail();
       setStatus(els.globalStatus, "Reply sent.", "ok");
@@ -206,6 +211,17 @@ function upsertTicket(ticket) {
   if (idx >= 0) state.tickets[idx] = ticket;
   else state.tickets.unshift(ticket);
   state.tickets.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+}
+
+function ensureTicketVisible(ticket) {
+  if (!ticket) return;
+  // Keep the open conversation on screen after status changes (e.g. waiting for customer).
+  if (state.statusFilter !== "all" && ticket.status !== state.statusFilter) {
+    state.statusFilter = "all";
+    if (els.statusFilter) els.statusFilter.value = "all";
+  }
+  upsertTicket(ticket);
+  state.selectedId = ticket.id;
 }
 
 function renderClients() {

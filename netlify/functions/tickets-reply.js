@@ -54,8 +54,11 @@ exports.handler = async (event) => {
 
     if (ticket.status === "done" && author === "client") {
       ticket.status = "open";
-    } else if (author === "admin" && ticket.status === "open") {
+    } else if (author === "client" && ticket.status === "waiting_on_customer") {
       ticket.status = "in_progress";
+    } else if (author === "admin" && ticket.status !== "done") {
+      // Admin replies move the ball to the customer so they know a response is waiting.
+      ticket.status = "waiting_on_customer";
     }
 
     const now = new Date().toISOString();

@@ -622,23 +622,37 @@ textarea {
 }
 
 /* —— Track page —— */
-.track-shell { max-width: 720px; }
+.track-shell {
+  display: flex;
+  flex-direction: column;
+  max-width: 1100px;
+  min-height: calc(100vh - 2rem);
+}
+
+.track-shell > .app-chrome {
+  flex: 0 0 auto;
+}
 
 .track-card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 18px;
   box-shadow: var(--shadow-sm);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: calc(100vh - 140px);
   overflow: hidden;
 }
 
 .track-hero {
   border-bottom: 1px solid var(--line);
-  padding: 1.35rem 1.35rem 1.15rem;
+  flex: 0 0 auto;
+  padding: 1.35rem 1.5rem 1.15rem;
 }
 
 .track-hero h1 {
-  font-size: clamp(1.35rem, 3vw, 1.65rem);
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
   font-weight: 750;
   letter-spacing: -0.03em;
   margin: 0.55rem 0 0.4rem;
@@ -651,21 +665,30 @@ textarea {
 
 .thread {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: 0.85rem;
-  padding: 1.25rem 1.35rem;
+  gap: 0.9rem;
+  min-height: 320px;
+  overflow: auto;
+  padding: 1.35rem 1.5rem;
 }
 
 .bubble {
   background: #f8fafc;
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 0.9rem 1rem;
+  max-width: min(760px, 92%);
+  padding: 0.95rem 1.05rem;
 }
 
 .bubble.admin {
+  align-self: flex-end;
   background: var(--blue-soft);
   border-color: rgba(37, 99, 235, 0.12);
+}
+
+.bubble.client {
+  align-self: flex-start;
 }
 
 .bubble .who {
@@ -679,7 +702,7 @@ textarea {
 
 .bubble .body {
   color: var(--ink-soft);
-  font-size: 0.95rem;
+  font-size: 0.98rem;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -687,7 +710,12 @@ textarea {
 .reply-box {
   background: #f8fafc;
   border-top: 1px solid var(--line);
-  padding: 1.15rem 1.35rem 1.35rem;
+  flex: 0 0 auto;
+  padding: 1.15rem 1.5rem 1.35rem;
+}
+
+.reply-box textarea {
+  min-height: 120px;
 }
 
 @media (max-width: 720px) {

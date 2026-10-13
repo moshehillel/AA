@@ -96,6 +96,9 @@ function render(ticket) {
     </div>
   `;
 
+  const threadEl = panel.querySelector(".thread");
+  if (threadEl) threadEl.scrollTop = threadEl.scrollHeight;
+
   document.getElementById("replyForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const status = document.getElementById("replyStatus");
