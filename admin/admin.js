@@ -83,12 +83,32 @@ async function api(path, options = {}) {
   return data;
 }
 
+function visibleTickets() {
+  // Filter the sidebar list, but always keep the open conversation visible
+  // so replies stay on screen after Resolved / Waiting / etc.
+  const selected = state.tickets.find((t) => t.id === state.selectedId) || null;
+  let list =
+    state.statusFilter === "all"
+      ? state.tickets.slice()
+      : state.tickets.filter((t) => t.status === state.statusFilter);
+
+  if (selected && !list.some((t) => t.id === selected.id)) {
+    list = [selected, ...list];
+  }
+  return list;
+}
+
 function renderTicketList() {
+  const tickets = visibleTickets();
   if (!state.tickets.length) {
     els.ticketList.innerHTML = `<p class="muted">No tickets yet.</p>`;
     return;
   }
-  els.ticketList.innerHTML = state.tickets
+  if (!tickets.length) {
+    els.ticketList.innerHTML = `<p class="muted">No tickets in this status. Switch to All to browse everything.</p>`;
+    return;
+  }
+  els.ticketList.innerHTML = tickets
     .map((t) => {
       const active = t.id === state.selectedId ? "active" : "";
       return `
@@ -118,7 +138,7 @@ function renderTicketDetail() {
   const messages = (t.messages || [])
     .map(
       (m) => `
-      <div class="bubble ${m.author}">
+      <div class="bubble ${m.author === "admin" ? "admin" : "client"}">
         <div class="who">${m.author === "admin" ? "You" : "Client"} · ${formatWhen(m.createdAt)}</div>
         <div>${escapeHtml(m.body)}</div>
         ${window.TicketAttachments.renderAttachmentsHtml(t, m)}
@@ -215,11 +235,7 @@ function upsertTicket(ticket) {
 
 function ensureTicketVisible(ticket) {
   if (!ticket) return;
-  // Keep the open conversation on screen after status changes (e.g. waiting for customer).
-  if (state.statusFilter !== "all" && ticket.status !== state.statusFilter) {
-    state.statusFilter = "all";
-    if (els.statusFilter) els.statusFilter.value = "all";
-  }
+  // Keep the open conversation selected after any status change so replies stay visible.
   upsertTicket(ticket);
   state.selectedId = ticket.id;
 }
@@ -310,11 +326,10 @@ function escapeHtml(value) {
 }
 
 async function loadTickets() {
-  const data = await api(`tickets-list?status=${encodeURIComponent(state.statusFilter)}`);
+  // Always load the full set; status filtering is client-side so an open
+  // ticket (and its replies) never disappear when status changes.
+  const data = await api("tickets-list?status=all");
   state.tickets = data.tickets || [];
-  if (state.selectedId && !state.tickets.find((t) => t.id === state.selectedId)) {
-    state.selectedId = null;
-  }
   renderTicketList();
   renderTicketDetail();
 }
@@ -380,7 +395,9 @@ document.querySelectorAll(".tab").forEach((tab) => {
 
 els.statusFilter.addEventListener("change", () => {
   state.statusFilter = els.statusFilter.value;
-  refresh();
+  // Re-render only — do not clear the selected ticket or its replies.
+  renderTicketList();
+  renderTicketDetail();
 });
 
 els.ticketList.addEventListener("click", (e) => {
