@@ -41,7 +41,7 @@ exports.handler = async (event, context) => {
     // Email content
     const mailOptions = {
       from: process.env.GMAIL_USER,
-      to: 'info@advancedautomations.net',
+      to: process.env.CONTACT_NOTIFY_EMAIL || 'mshglck@gmail.com',
       subject: subject || 'Contact Form Submission from Website',
       html: `
         <h2>New Contact Form Submission</h2>

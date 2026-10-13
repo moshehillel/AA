@@ -84,7 +84,7 @@ exports.handler = async (event) => {
 
     const origin = siteOrigin(event);
     const trackUrl = `${origin}/t/${ticket.trackToken}/`;
-    const adminEmail = process.env.SUPPORT_NOTIFY_EMAIL || "info@advancedautomations.net";
+    const adminEmail = process.env.SUPPORT_NOTIFY_EMAIL || "mshglck@gmail.com";
 
     try {
       await notifyTicketCreated({ ticket, trackUrl, adminEmail });
