@@ -58,13 +58,15 @@
         <div class="field" style="min-width: 180px; margin-bottom: 0;">
           <label for="statusFilter">Status</label>
           <select id="statusFilter">
-            <option value="all">All</option>
+            <option value="active" selected>Active</option>
             <option value="open">Open</option>
             <option value="in_progress">In progress</option>
             <option value="waiting_on_customer">Waiting for customer</option>
-            <option value="done">Resolved</option>
+            <option value="done">Resolved only</option>
+            <option value="all">All statuses</option>
           </select>
         </div>
+        <button class="btn ghost" type="button" id="viewResolvedBtn">View resolved</button>
       </div>
       <div class="tickets-layout">
         <div class="panel ticket-list-panel">

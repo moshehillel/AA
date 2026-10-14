@@ -38,16 +38,28 @@ body::before {
   z-index: -1;
 }
 
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
 .shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   margin: 0 auto;
   max-width: 1480px;
-  padding: 1rem 1.25rem 1.5rem;
+  overflow: hidden;
+  padding: 0.85rem 1.25rem 1rem;
 }
 
 #appView {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  min-height: calc(100vh - 2rem);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .login-panel {
@@ -58,9 +70,10 @@ body::before {
 .topbar {
   align-items: center;
   display: flex;
+  flex: 0 0 auto;
   gap: 1rem;
   justify-content: space-between;
-  margin-bottom: 1.35rem;
+  margin-bottom: 0.85rem;
 }
 
 .brand {
@@ -95,8 +108,9 @@ body::before {
 
 .tabs {
   display: flex;
+  flex: 0 0 auto;
   gap: 0.45rem;
-  margin-bottom: 1.15rem;
+  margin-bottom: 0.75rem;
 }
 
 .tab,
@@ -156,11 +170,13 @@ button:hover {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.75rem;
   min-height: 0;
+  overflow: hidden;
 }
 
 .tickets-toolbar {
+  align-items: end;
   flex: 0 0 auto;
 }
 
@@ -169,23 +185,23 @@ button:hover {
   flex: 1;
   gap: 1rem;
   grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
-  min-height: calc(100vh - 210px);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .ticket-list-panel,
 .ticket-detail-panel {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  max-height: 100%;
   min-height: 0;
   overflow: hidden;
 }
 
 .ticket-detail-panel {
   display: grid;
-  grid-template-rows: auto minmax(42vh, 1fr) auto;
-  height: 100%;
-  min-height: calc(100vh - 210px);
-  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   padding: 0;
 }
 
@@ -224,6 +240,8 @@ button:hover {
   background: rgba(255, 255, 255, 0.96);
   border-top: 1px solid var(--line);
   padding: 0.85rem 1.15rem 1rem;
+  position: relative;
+  z-index: 2;
 }
 
 .reply-composer textarea {
@@ -243,17 +261,43 @@ button:hover {
 }
 
 @media (max-width: 900px) {
+  html,
+  body {
+    height: auto;
+    overflow: auto;
+  }
+
+  .shell {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  #appView {
+    overflow: visible;
+  }
+
   .grid-2 { grid-template-columns: 1fr; }
+
+  .tickets-workspace {
+    overflow: visible;
+  }
+
   .tickets-layout {
     grid-template-columns: 1fr;
-    min-height: auto;
+    overflow: visible;
   }
-  .ticket-list-panel { max-height: 36vh; }
+
+  .ticket-list-panel {
+    height: auto;
+    max-height: 36vh;
+  }
+
   .ticket-detail-panel {
-    min-height: 70vh;
-    grid-template-rows: auto minmax(45vh, 1fr) auto;
+    height: min(70vh, 720px);
+    max-height: 70vh;
+    grid-template-rows: auto minmax(0, 1fr) auto;
   }
-  .thread { min-height: 45vh; }
 }
 
 label {
@@ -352,10 +396,16 @@ textarea { min-height: 110px; resize: vertical; }
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  min-height: 42vh;
+  min-height: 0;
   overflow: auto;
   padding: 1.1rem 1.25rem;
   -webkit-overflow-scrolling: touch;
+}
+
+.reply-composer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 
 .bubble {

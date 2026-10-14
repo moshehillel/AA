@@ -7,7 +7,8 @@ const state = {
   selectedId: null,
   // Full ticket currently open in the detail pane (keeps replies even if list filters change).
   selectedTicket: null,
-  statusFilter: "all",
+  // Default: hide resolved tickets until "View resolved" is clicked.
+  statusFilter: "active",
 };
 
 const els = {
@@ -19,6 +20,7 @@ const els = {
   ticketList: document.getElementById("ticketList"),
   ticketDetail: document.getElementById("ticketDetail"),
   statusFilter: document.getElementById("statusFilter"),
+  viewResolvedBtn: document.getElementById("viewResolvedBtn"),
   ticketsTab: document.getElementById("ticketsTab"),
   clientsTab: document.getElementById("clientsTab"),
   clientList: document.getElementById("clientList"),
@@ -85,14 +87,26 @@ async function api(path, options = {}) {
   return data;
 }
 
+function ticketMatchesFilter(ticket, filter) {
+  if (!ticket) return false;
+  if (filter === "all") return true;
+  if (filter === "active") return ticket.status !== "done";
+  if (filter === "done") return ticket.status === "done";
+  return ticket.status === filter;
+}
+
+function syncResolvedButton() {
+  if (!els.viewResolvedBtn) return;
+  const viewingResolved = state.statusFilter === "done" || state.statusFilter === "all";
+  els.viewResolvedBtn.textContent = viewingResolved ? "Hide resolved" : "View resolved";
+  els.viewResolvedBtn.classList.toggle("primary", state.statusFilter === "done");
+}
+
 function visibleTickets() {
   // Filter the sidebar list, but always keep the open conversation visible
   // so replies stay on screen after Resolved / Waiting / etc.
   const selected = selectedTicket();
-  let list =
-    state.statusFilter === "all"
-      ? state.tickets.slice()
-      : state.tickets.filter((t) => t.status === state.statusFilter);
+  let list = state.tickets.filter((t) => ticketMatchesFilter(t, state.statusFilter));
 
   if (selected && !list.some((t) => String(t.id) === String(selected.id))) {
     list = [selected, ...list];
@@ -107,7 +121,11 @@ function renderTicketList() {
     return;
   }
   if (!tickets.length) {
-    els.ticketList.innerHTML = `<p class="muted">No tickets in this status. Switch to All to browse everything.</p>`;
+    const hint =
+      state.statusFilter === "active"
+        ? `No active tickets. Click “View resolved” to see completed ones.`
+        : `No tickets in this status.`;
+    els.ticketList.innerHTML = `<p class="muted">${hint}</p>`;
     return;
   }
   els.ticketList.innerHTML = tickets
@@ -239,12 +257,8 @@ function renderTicketDetail() {
         } catch {
           // keep merged ticket
         }
-        // Keep Resolved/Waiting tickets easy to find in the sidebar.
-        if (next && state.statusFilter !== "all" && next.status !== state.statusFilter) {
-          state.statusFilter = "all";
-          if (els.statusFilter) els.statusFilter.value = "all";
-        }
         await showTicket(next);
+        syncResolvedButton();
         setStatus(els.globalStatus, "Status updated.", "ok");
       } catch (error) {
         setStatus(detailStatus, error.message, "error");
@@ -278,11 +292,8 @@ function renderTicketDetail() {
       } catch {
         // keep response ticket if refresh fails
       }
-      if (next && state.statusFilter !== "all" && next.status !== state.statusFilter) {
-        state.statusFilter = "all";
-        if (els.statusFilter) els.statusFilter.value = "all";
-      }
       await showTicket(next);
+      syncResolvedButton();
       setStatus(els.globalStatus, "Reply sent.", "ok");
     } catch (error) {
       setStatus(detailStatus, error.message, "error");
@@ -432,6 +443,8 @@ async function loadTickets() {
       upsertTicket(state.selectedTicket);
     }
   }
+  if (els.statusFilter) els.statusFilter.value = state.statusFilter;
+  syncResolvedButton();
   renderTicketList();
   renderTicketDetail();
 }
@@ -497,7 +510,20 @@ document.querySelectorAll(".tab").forEach((tab) => {
 
 els.statusFilter.addEventListener("change", () => {
   state.statusFilter = els.statusFilter.value;
+  syncResolvedButton();
   // Re-render only — do not clear the selected ticket or its replies.
+  renderTicketList();
+  renderTicketDetail();
+});
+
+els.viewResolvedBtn.addEventListener("click", () => {
+  if (state.statusFilter === "done") {
+    state.statusFilter = "active";
+  } else {
+    state.statusFilter = "done";
+  }
+  if (els.statusFilter) els.statusFilter.value = state.statusFilter;
+  syncResolvedButton();
   renderTicketList();
   renderTicketDetail();
 });
