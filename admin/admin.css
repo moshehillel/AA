@@ -181,40 +181,65 @@ button:hover {
 }
 
 .ticket-detail-panel {
+  display: grid;
+  grid-template-rows: auto minmax(42vh, 1fr) auto;
+  height: 100%;
+  min-height: calc(100vh - 210px);
+  overflow: hidden;
   padding: 0;
 }
 
 .ticket-detail-panel > .muted {
+  grid-row: 1 / -1;
   padding: 1.25rem;
 }
 
 .detail-chrome {
   border-bottom: 1px solid var(--line);
-  flex: 0 0 auto;
-  padding: 1.1rem 1.25rem 0.9rem;
+  padding: 0.9rem 1.15rem 0.75rem;
 }
 
-.track-link {
-  margin: 0.65rem 0 0.75rem;
+.detail-subrow {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  justify-content: space-between;
+  margin: 0.55rem 0 0.65rem;
+}
+
+.track-link,
+.message-count {
+  margin: 0;
 }
 
 .status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
   margin: 0;
 }
 
 .reply-composer {
+  background: rgba(255, 255, 255, 0.96);
   border-top: 1px solid var(--line);
-  flex: 0 0 auto;
-  padding: 1rem 1.25rem 1.15rem;
+  padding: 0.85rem 1.15rem 1rem;
 }
 
 .reply-composer textarea {
-  min-height: 120px;
+  min-height: 88px;
+}
+
+.reply-actions {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.65rem;
 }
 
 .ticket-detail-panel .status {
-  margin: 0;
-  padding: 0 1.25rem 1rem;
+  margin: 0.55rem 0 0;
 }
 
 @media (max-width: 900px) {
@@ -223,7 +248,12 @@ button:hover {
     grid-template-columns: 1fr;
     min-height: auto;
   }
-  .ticket-list-panel { max-height: 40vh; }
+  .ticket-list-panel { max-height: 36vh; }
+  .ticket-detail-panel {
+    min-height: 70vh;
+    grid-template-rows: auto minmax(45vh, 1fr) auto;
+  }
+  .thread { min-height: 45vh; }
 }
 
 label {
@@ -320,18 +350,19 @@ textarea { min-height: 110px; resize: vertical; }
   background:
     linear-gradient(180deg, rgba(244, 247, 251, 0.65), rgba(255, 255, 255, 0.2));
   display: flex;
-  flex: 1;
   flex-direction: column;
   gap: 0.85rem;
-  min-height: 280px;
+  min-height: 42vh;
   overflow: auto;
   padding: 1.1rem 1.25rem;
+  -webkit-overflow-scrolling: touch;
 }
 
 .bubble {
-  background: #f3f6f9;
+  background: #fff;
+  border: 1px solid var(--line);
   border-radius: 12px;
-  max-width: min(720px, 92%);
+  max-width: min(720px, 94%);
   padding: 0.95rem 1.05rem;
   white-space: pre-wrap;
   word-break: break-word;
@@ -339,7 +370,8 @@ textarea { min-height: 110px; resize: vertical; }
 
 .bubble.admin {
   align-self: flex-end;
-  background: rgba(36, 119, 255, 0.1);
+  background: rgba(36, 119, 255, 0.12);
+  border-color: rgba(36, 119, 255, 0.22);
 }
 
 .bubble.client {

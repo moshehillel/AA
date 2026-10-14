@@ -182,6 +182,8 @@ function renderTicketDetail() {
 
   const messageList = Array.isArray(t.messages) ? t.messages : [];
   const messages = messageList.map((m) => renderMessageBubble(t, m)).join("");
+  const messageCount = messageList.length;
+  const adminCount = messageList.filter((m) => m && m.author === "admin").length;
 
   els.ticketDetail.innerHTML = `
     <div class="detail-chrome">
@@ -192,7 +194,10 @@ function renderTicketDetail() {
         </div>
         ${statusBadge(t.status)}
       </div>
-      <p class="meta track-link">Track: <a href="/t/${encodeURIComponent(t.trackToken)}/" target="_blank" rel="noopener">/t/${escapeHtml(t.trackToken)}/</a></p>
+      <div class="detail-subrow">
+        <p class="meta track-link">Track: <a href="/t/${encodeURIComponent(t.trackToken)}/" target="_blank" rel="noopener">/t/${escapeHtml(t.trackToken)}/</a></p>
+        <p class="meta message-count">${messageCount} message${messageCount === 1 ? "" : "s"}${adminCount ? ` · ${adminCount} from you` : ""}</p>
+      </div>
       <div class="actions status-actions">
         <button class="btn" type="button" data-status="open">Open</button>
         <button class="btn" type="button" data-status="in_progress">In progress</button>
@@ -200,31 +205,46 @@ function renderTicketDetail() {
         <button class="btn primary" type="button" data-status="done">Mark resolved</button>
       </div>
     </div>
-    <div class="thread">${messages || '<p class="muted">No messages yet.</p>'}</div>
+    <div class="thread" id="ticketThread">${messages || '<p class="muted">No messages yet.</p>'}</div>
     <form id="replyForm" class="reply-composer">
       <div class="field">
         <label for="replyBody">Reply</label>
         <textarea id="replyBody" placeholder="Write a reply..."></textarea>
       </div>
-      <div class="field">
-        <label for="replyAttachments">Attach file or screenshot</label>
-        <input id="replyAttachments" type="file" accept="image/*,.pdf,.txt,application/pdf,text/plain" multiple />
+      <div class="reply-actions">
+        <div class="field" style="margin-bottom:0;flex:1;">
+          <label for="replyAttachments">Attach file or screenshot</label>
+          <input id="replyAttachments" type="file" accept="image/*,.pdf,.txt,application/pdf,text/plain" multiple />
+        </div>
+        <button class="btn primary" type="submit">Send reply</button>
       </div>
-      <button class="btn primary" type="submit">Send reply</button>
+      <p class="status" id="detailStatus"></p>
     </form>
-    <p class="status" id="detailStatus"></p>
   `;
 
   els.ticketDetail.querySelectorAll("[data-status]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const detailStatus = document.getElementById("detailStatus");
+      const previous = selectedTicket();
       try {
         setStatus(detailStatus, "Updating…");
         const data = await api("tickets-status", {
           method: "POST",
           body: JSON.stringify({ id: t.id, status: btn.dataset.status }),
         });
-        await showTicket(data.ticket || (await fetchTicket(t.id)));
+        let next = preserveMessages(data.ticket, previous);
+        try {
+          const fresh = await fetchTicket(t.id);
+          next = preserveMessages(fresh, next || previous);
+        } catch {
+          // keep merged ticket
+        }
+        // Keep Resolved/Waiting tickets easy to find in the sidebar.
+        if (next && state.statusFilter !== "all" && next.status !== state.statusFilter) {
+          state.statusFilter = "all";
+          if (els.statusFilter) els.statusFilter.value = "all";
+        }
+        await showTicket(next);
         setStatus(els.globalStatus, "Status updated.", "ok");
       } catch (error) {
         setStatus(detailStatus, error.message, "error");
@@ -232,12 +252,7 @@ function renderTicketDetail() {
     });
   });
 
-  const threadEl = els.ticketDetail.querySelector(".thread");
-  if (threadEl) {
-    requestAnimationFrame(() => {
-      threadEl.scrollTop = threadEl.scrollHeight;
-    });
-  }
+  scrollThreadToEnd();
 
   const replyForm = document.getElementById("replyForm");
   replyForm.addEventListener("submit", async (e) => {
@@ -245,6 +260,7 @@ function renderTicketDetail() {
     const detailStatus = document.getElementById("detailStatus");
     const body = document.getElementById("replyBody").value.trim();
     const fileInput = document.getElementById("replyAttachments");
+    const previous = selectedTicket();
     try {
       setStatus(detailStatus, "Sending…");
       const attachments = await window.TicketAttachments.filesFromInput(fileInput);
@@ -255,19 +271,44 @@ function renderTicketDetail() {
         method: "POST",
         body: JSON.stringify({ id: t.id, message: body, attachments }),
       });
-      // Prefer the API ticket (includes the new reply), then re-fetch to be sure.
-      await showTicket(data.ticket || (await fetchTicket(t.id)));
+      let next = preserveMessages(data.ticket, previous);
       try {
         const fresh = await fetchTicket(t.id);
-        if (fresh) await showTicket(fresh);
+        next = preserveMessages(fresh, next || previous);
       } catch {
         // keep response ticket if refresh fails
       }
+      if (next && state.statusFilter !== "all" && next.status !== state.statusFilter) {
+        state.statusFilter = "all";
+        if (els.statusFilter) els.statusFilter.value = "all";
+      }
+      await showTicket(next);
       setStatus(els.globalStatus, "Reply sent.", "ok");
     } catch (error) {
       setStatus(detailStatus, error.message, "error");
     }
   });
+}
+
+function scrollThreadToEnd() {
+  const threadEl = document.getElementById("ticketThread") || els.ticketDetail.querySelector(".thread");
+  if (!threadEl) return;
+  const run = () => {
+    threadEl.scrollTop = threadEl.scrollHeight;
+  };
+  requestAnimationFrame(() => {
+    run();
+    requestAnimationFrame(run);
+  });
+}
+
+function preserveMessages(incoming, previous) {
+  if (!incoming) return previous || null;
+  if (!previous || String(previous.id) !== String(incoming.id)) return incoming;
+  const incomingMessages = Array.isArray(incoming.messages) ? incoming.messages : [];
+  const previousMessages = Array.isArray(previous.messages) ? previous.messages : [];
+  if (incomingMessages.length >= previousMessages.length) return incoming;
+  return { ...incoming, messages: previousMessages };
 }
 
 function upsertTicket(ticket) {
