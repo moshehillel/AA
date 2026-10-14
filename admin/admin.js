@@ -221,6 +221,7 @@ function renderTicketDetail() {
         <button class="btn" type="button" data-status="in_progress">In progress</button>
         <button class="btn" type="button" data-status="waiting_on_customer">Waiting for customer</button>
         <button class="btn primary" type="button" data-status="done">Mark resolved</button>
+        <button class="btn danger" type="button" id="deleteTicketBtn">Delete ticket</button>
       </div>
     </div>
     <div class="thread" id="ticketThread">${messages || '<p class="muted">No messages yet.</p>'}</div>
@@ -265,6 +266,40 @@ function renderTicketDetail() {
       }
     });
   });
+
+  const deleteBtn = document.getElementById("deleteTicketBtn");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", async () => {
+      const detailStatus = document.getElementById("detailStatus");
+      const label = t.subject || t.id;
+      if (
+        !window.confirm(
+          `Delete ticket “${label}”? This cannot be undone, and the public track link will stop working.`
+        )
+      ) {
+        return;
+      }
+      try {
+        setStatus(detailStatus, "Deleting…");
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = "Deleting…";
+        await api("tickets-delete", {
+          method: "POST",
+          body: JSON.stringify({ id: t.id }),
+        });
+        state.tickets = state.tickets.filter((item) => String(item.id) !== String(t.id));
+        state.selectedId = null;
+        state.selectedTicket = null;
+        renderTicketList();
+        renderTicketDetail();
+        setStatus(els.globalStatus, "Ticket deleted.", "ok");
+      } catch (error) {
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = "Delete ticket";
+        setStatus(detailStatus, error.message, "error");
+      }
+    });
+  }
 
   scrollThreadToEnd();
 
