@@ -1,5 +1,5 @@
 const { json, parseBody, methodNotAllowed, getHeader } = require("./_lib/http");
-const { loginClient, sessionCookie } = require("./_lib/auth");
+const { loginClient, sessionCookie, adminSessionCookie } = require("./_lib/auth");
 const { initBlobs, publicClient } = require("./_lib/store");
 
 exports.handler = async (event) => {
@@ -21,10 +21,17 @@ exports.handler = async (event) => {
     }
 
     const proto = getHeader(event, "x-forwarded-proto") || "https";
+    const secure = proto === "https";
+    // Clear any admin session so leftover admin cookies cannot leak other clients' tickets.
     return json(
       200,
       { success: true, client: publicClient(result.client) },
-      { "Set-Cookie": sessionCookie(result.token, { secure: proto === "https" }) }
+      {
+        "Set-Cookie": [
+          sessionCookie(result.token, { secure }),
+          adminSessionCookie("", { clear: true, secure }),
+        ],
+      }
     );
   } catch (error) {
     console.error("support-login error:", error);
