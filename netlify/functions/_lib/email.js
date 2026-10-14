@@ -24,6 +24,7 @@ async function sendMail({ to, subject, html }) {
     console.warn("Email skipped: GMAIL_USER / GMAIL_APP_PASSWORD not set");
     return { skipped: true };
   }
+  // Auth stays on GMAIL_USER; From uses the Gmail "Send mail as" alias.
   await transporter.sendMail({
     from: process.env.MAIL_FROM || DEFAULT_FROM,
     to,
