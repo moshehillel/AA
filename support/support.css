@@ -129,6 +129,15 @@ img { display: block; max-width: 100%; }
 
 .btn:active { transform: translateY(1px); }
 
+.btn:disabled,
+.btn[disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+  transform: none;
+  box-shadow: none;
+}
+
 .btn-primary {
   background: linear-gradient(180deg, #1a2740 0%, var(--navy) 100%);
   box-shadow: var(--shadow-xs), inset 0 1px 0 rgba(255,255,255,0.08);

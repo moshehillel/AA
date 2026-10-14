@@ -269,12 +269,18 @@ function renderTicketDetail() {
   scrollThreadToEnd();
 
   const replyForm = document.getElementById("replyForm");
+  const replyBtn = replyForm.querySelector('button[type="submit"]');
   replyForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (replyBtn && replyBtn.disabled) return;
     const detailStatus = document.getElementById("detailStatus");
     const body = document.getElementById("replyBody").value.trim();
     const fileInput = document.getElementById("replyAttachments");
     const previous = selectedTicket();
+    if (replyBtn) {
+      replyBtn.disabled = true;
+      replyBtn.textContent = "Sending…";
+    }
     try {
       setStatus(detailStatus, "Sending…");
       const attachments = await window.TicketAttachments.filesFromInput(fileInput);
@@ -296,6 +302,10 @@ function renderTicketDetail() {
       syncResolvedButton();
       setStatus(els.globalStatus, "Reply sent.", "ok");
     } catch (error) {
+      if (replyBtn) {
+        replyBtn.disabled = false;
+        replyBtn.textContent = "Send reply";
+      }
       setStatus(detailStatus, error.message, "error");
     }
   });

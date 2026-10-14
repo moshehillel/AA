@@ -99,11 +99,18 @@ function render(ticket) {
   const threadEl = panel.querySelector(".thread");
   if (threadEl) threadEl.scrollTop = threadEl.scrollHeight;
 
-  document.getElementById("replyForm").addEventListener("submit", async (e) => {
+  const replyForm = document.getElementById("replyForm");
+  const replyBtn = replyForm.querySelector('button[type="submit"]');
+  replyForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (replyBtn && replyBtn.disabled) return;
     const status = document.getElementById("replyStatus");
     const message = document.getElementById("replyBody").value.trim();
     const fileInput = document.getElementById("replyAttachments");
+    if (replyBtn) {
+      replyBtn.disabled = true;
+      replyBtn.textContent = "Sending…";
+    }
     try {
       status.textContent = "Sending…";
       status.className = "status";
@@ -122,6 +129,10 @@ function render(ticket) {
         next.className = "status ok";
       }
     } catch (error) {
+      if (replyBtn) {
+        replyBtn.disabled = false;
+        replyBtn.textContent = "Send reply";
+      }
       status.textContent = error.message;
       status.className = "status error";
     }

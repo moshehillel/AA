@@ -24,6 +24,7 @@ const state = {
   client: null,
   tickets: [],
   filter: "all",
+  creatingTicket: false,
 };
 
 function escapeHtml(value) {
@@ -104,9 +105,18 @@ function applyContactPlaceholders(client) {
     : "Falls back to account default";
 }
 
+function setSubmitTicketEnabled(enabled) {
+  const btn = document.getElementById("submitTicketBtn");
+  if (!btn) return;
+  btn.disabled = !enabled;
+  btn.textContent = enabled ? "Submit ticket" : "Submitting…";
+}
+
 function openModal() {
   els.ticketModal.classList.remove("hidden");
   els.createStatus.innerHTML = "";
+  setSubmitTicketEnabled(true);
+  state.creatingTicket = false;
   document.getElementById("subject")?.focus();
   document.body.style.overflow = "hidden";
 }
@@ -274,6 +284,9 @@ els.logoutBtn.addEventListener("click", async () => {
 
 els.createForm.addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (state.creatingTicket) return;
+  state.creatingTicket = true;
+  setSubmitTicketEnabled(false);
   const fileInput = document.getElementById("attachments");
   try {
     els.createStatus.innerHTML = `<p class="status">Submitting…</p>`;
@@ -314,7 +327,10 @@ els.createForm.addEventListener("submit", async (e) => {
       els.createStatus.innerHTML = "";
     });
     await loadTickets();
+    // Stay disabled until the modal is opened again for a new ticket.
   } catch (error) {
+    state.creatingTicket = false;
+    setSubmitTicketEnabled(true);
     els.createStatus.innerHTML = `<p class="status error">${escapeHtml(error.message)}</p>`;
   }
 });

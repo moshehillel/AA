@@ -145,6 +145,16 @@ button:hover {
   transform: translateY(-1px);
 }
 
+.btn:disabled,
+.btn[disabled],
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+  transform: none;
+  box-shadow: none;
+}
+
 .tab.active,
 .btn.primary {
   background: var(--navy);
