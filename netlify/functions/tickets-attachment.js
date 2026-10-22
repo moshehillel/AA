@@ -45,10 +45,14 @@ exports.handler = async (event) => {
     } else if (ticketId) {
       ticket = await getTicketById(ticketId);
       if (ticket) {
-        const admin = requireAdmin(event);
-        if (!admin.ok) {
-          const clientAuth = await requireClientSession(event);
-          if (!clientAuth.ok || clientAuth.client.slug !== ticket.clientSlug) {
+        const clientAuth = await requireClientSession(event);
+        if (clientAuth.ok) {
+          if (clientAuth.client.slug !== ticket.clientSlug) {
+            return json(403, { error: "Not allowed to access this attachment." });
+          }
+        } else {
+          const admin = requireAdmin(event);
+          if (!admin.ok) {
             return json(401, { error: "Authentication required." });
           }
         }
