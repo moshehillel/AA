@@ -9,6 +9,7 @@ const state = {
   selectedTicket: null,
   // Default: hide resolved tickets until "View resolved" is clicked.
   statusFilter: "active",
+  statusUpdatingId: null,
 };
 
 const els = {
@@ -241,28 +242,41 @@ function renderTicketDetail() {
     </form>
   `;
 
-  els.ticketDetail.querySelectorAll("[data-status]").forEach((btn) => {
+  const statusButtons = Array.from(els.ticketDetail.querySelectorAll("[data-status]"));
+  statusButtons.forEach((btn) => {
     btn.addEventListener("click", async () => {
       const detailStatus = document.getElementById("detailStatus");
-      const previous = selectedTicket();
+      const previous = selectedTicket() || t;
+      const nextStatus = btn.dataset.status;
+      if (!nextStatus || (previous && previous.status === nextStatus)) return;
+
+      // Optimistic UI so the badge/list update immediately.
+      const optimistic = {
+        ...previous,
+        status: nextStatus,
+        updatedAt: new Date().toISOString(),
+      };
+      showTicket(optimistic);
+      statusButtons.forEach((b) => {
+        b.disabled = true;
+      });
+      setStatus(detailStatus, "Updating…");
+
       try {
-        setStatus(detailStatus, "Updating…");
         const data = await api("tickets-status", {
           method: "POST",
-          body: JSON.stringify({ id: t.id, status: btn.dataset.status }),
+          body: JSON.stringify({ id: t.id, status: nextStatus }),
         });
-        let next = preserveMessages(data.ticket, previous);
-        try {
-          const fresh = await fetchTicket(t.id);
-          next = preserveMessages(fresh, next || previous);
-        } catch {
-          // keep merged ticket
-        }
-        await showTicket(next);
+        const next = mergeTicketUpdate(data.ticket, optimistic);
+        showTicket(next);
         syncResolvedButton();
         setStatus(els.globalStatus, "Status updated.", "ok");
+        setStatus(detailStatus, "");
       } catch (error) {
+        showTicket(previous);
         setStatus(detailStatus, error.message, "error");
+      } finally {
+        // Buttons are recreated by showTicket; nothing else to restore here.
       }
     });
   });
@@ -326,14 +340,8 @@ function renderTicketDetail() {
         method: "POST",
         body: JSON.stringify({ id: t.id, message: body, attachments }),
       });
-      let next = preserveMessages(data.ticket, previous);
-      try {
-        const fresh = await fetchTicket(t.id);
-        next = preserveMessages(fresh, next || previous);
-      } catch {
-        // keep response ticket if refresh fails
-      }
-      await showTicket(next);
+      const next = mergeTicketUpdate(data.ticket, previous);
+      showTicket(next);
       syncResolvedButton();
       setStatus(els.globalStatus, "Reply sent.", "ok");
     } catch (error) {
@@ -367,6 +375,23 @@ function preserveMessages(incoming, previous) {
   return { ...incoming, messages: previousMessages };
 }
 
+function mergeTicketUpdate(incoming, previous) {
+  if (!incoming) return previous || null;
+  if (!previous || String(previous.id) !== String(incoming.id)) return incoming;
+  const merged = preserveMessages(incoming, previous);
+  // Prefer the newer status/updatedAt so a stale refetch cannot roll the UI back.
+  const incomingUpdated = Date.parse(incoming.updatedAt || "") || 0;
+  const previousUpdated = Date.parse(previous.updatedAt || "") || 0;
+  if (previousUpdated > incomingUpdated) {
+    return {
+      ...merged,
+      status: previous.status,
+      updatedAt: previous.updatedAt,
+    };
+  }
+  return merged;
+}
+
 function upsertTicket(ticket) {
   if (!ticket || !ticket.id) return;
   const idx = state.tickets.findIndex((t) => String(t.id) === String(ticket.id));
@@ -380,7 +405,7 @@ async function fetchTicket(id) {
   return data.ticket || null;
 }
 
-async function showTicket(ticket) {
+function showTicket(ticket) {
   if (!ticket) return;
   selectTicket(ticket);
   renderTicketList();

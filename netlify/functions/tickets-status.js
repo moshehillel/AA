@@ -31,17 +31,18 @@ exports.handler = async (event) => {
     await saveTicket(ticket);
 
     const trackUrl = `${siteOrigin(event)}/t/${ticket.trackToken}/`;
-    try {
-      await notifyTicketUpdate({
-        ticket,
-        trackUrl,
-        kind: status === "done" ? "done" : "status",
-      });
-    } catch (emailError) {
-      console.error("tickets-status email error:", emailError);
-    }
+    const public = publicTicket(ticket);
 
-    return json(200, { ticket: publicTicket(ticket), trackUrl });
+    // Don't block the admin UI on slow Gmail SMTP — email continues in background.
+    notifyTicketUpdate({
+      ticket,
+      trackUrl,
+      kind: status === "done" ? "done" : "status",
+    }).catch((emailError) => {
+      console.error("tickets-status email error:", emailError);
+    });
+
+    return json(200, { ticket: public, trackUrl });
   } catch (error) {
     console.error("tickets-status error:", error);
     return json(500, { error: "Internal server error" });

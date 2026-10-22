@@ -79,20 +79,21 @@ exports.handler = async (event) => {
     await saveTicket(ticket);
 
     const trackUrl = `${siteOrigin(event)}/t/${ticket.trackToken}/`;
+    const public = publicTicket(ticket);
+
     if (author === "admin") {
-      try {
-        await notifyTicketUpdate({
-          ticket,
-          trackUrl,
-          kind: "reply",
-          body: message || "Sent an attachment",
-        });
-      } catch (emailError) {
+      // Return to the UI immediately; send the customer email in the background.
+      notifyTicketUpdate({
+        ticket,
+        trackUrl,
+        kind: "reply",
+        body: message || "Sent an attachment",
+      }).catch((emailError) => {
         console.error("tickets-reply email error:", emailError);
-      }
+      });
     }
 
-    return json(200, { ticket: publicTicket(ticket), trackUrl });
+    return json(200, { ticket: public, trackUrl });
   } catch (error) {
     console.error("tickets-reply error:", error);
     return json(500, { error: "Internal server error" });

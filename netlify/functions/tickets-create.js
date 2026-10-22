@@ -86,14 +86,15 @@ exports.handler = async (event) => {
     const trackUrl = `${origin}/t/${ticket.trackToken}/`;
     const adminEmail = process.env.SUPPORT_NOTIFY_EMAIL || "mshglck@gmail.com";
 
-    try {
-      await notifyTicketCreated({ ticket, trackUrl, adminEmail });
-    } catch (emailError) {
+    const public = publicTicket(ticket);
+
+    // Respond quickly; email delivery continues after the client gets the track link.
+    notifyTicketCreated({ ticket, trackUrl, adminEmail }).catch((emailError) => {
       console.error("tickets-create email error:", emailError);
-    }
+    });
 
     return json(201, {
-      ticket: publicTicket(ticket),
+      ticket: public,
       trackUrl,
     });
   } catch (error) {
