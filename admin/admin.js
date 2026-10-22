@@ -242,13 +242,15 @@ function renderTicketDetail() {
     </form>
   `;
 
-  const statusButtons = Array.from(els.ticketDetail.querySelectorAll("[data-status]"));
-  statusButtons.forEach((btn) => {
+  els.ticketDetail.querySelectorAll("[data-status]").forEach((btn) => {
     btn.addEventListener("click", async () => {
+      if (state.statusUpdatingId) return;
       const detailStatus = document.getElementById("detailStatus");
       const previous = selectedTicket() || t;
       const nextStatus = btn.dataset.status;
       if (!nextStatus || (previous && previous.status === nextStatus)) return;
+
+      state.statusUpdatingId = String(t.id);
 
       // Optimistic UI so the badge/list update immediately.
       const optimistic = {
@@ -257,10 +259,11 @@ function renderTicketDetail() {
         updatedAt: new Date().toISOString(),
       };
       showTicket(optimistic);
-      statusButtons.forEach((b) => {
+      document.querySelectorAll("#ticketDetail [data-status]").forEach((b) => {
         b.disabled = true;
       });
-      setStatus(detailStatus, "Updating…");
+      const liveStatus = document.getElementById("detailStatus");
+      setStatus(liveStatus || detailStatus, "Updating…");
 
       try {
         const data = await api("tickets-status", {
@@ -271,12 +274,12 @@ function renderTicketDetail() {
         showTicket(next);
         syncResolvedButton();
         setStatus(els.globalStatus, "Status updated.", "ok");
-        setStatus(detailStatus, "");
       } catch (error) {
         showTicket(previous);
-        setStatus(detailStatus, error.message, "error");
+        const errStatus = document.getElementById("detailStatus");
+        setStatus(errStatus || detailStatus, error.message, "error");
       } finally {
-        // Buttons are recreated by showTicket; nothing else to restore here.
+        state.statusUpdatingId = null;
       }
     });
   });
