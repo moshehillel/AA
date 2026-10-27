@@ -24,13 +24,35 @@ async function sendMail({ to, subject, html }) {
     console.warn("Email skipped: GMAIL_USER / GMAIL_APP_PASSWORD not set");
     return { skipped: true };
   }
-  await transporter.sendMail({
-    from: process.env.MAIL_FROM || DEFAULT_FROM,
-    to,
-    subject,
-    html,
-  });
-  return { sent: true };
+
+  const preferredFrom = process.env.MAIL_FROM || DEFAULT_FROM;
+  const fallbackFrom = process.env.GMAIL_USER
+    ? `"Advanced Automations Support" <${process.env.GMAIL_USER}>`
+    : preferredFrom;
+
+  try {
+    try {
+      await transporter.sendMail({ from: preferredFrom, to, subject, html });
+    } catch (primaryError) {
+      // Common when the Send mail as alias is missing/misconfigured in Gmail.
+      if (fallbackFrom !== preferredFrom) {
+        console.warn(
+          "Primary From failed, retrying with GMAIL_USER:",
+          primaryError && primaryError.message ? primaryError.message : primaryError
+        );
+        await transporter.sendMail({ from: fallbackFrom, to, subject, html });
+      } else {
+        throw primaryError;
+      }
+    }
+    return { sent: true };
+  } finally {
+    try {
+      transporter.close();
+    } catch {
+      // ignore
+    }
+  }
 }
 
 function escapeHtml(value) {

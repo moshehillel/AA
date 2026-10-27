@@ -33,14 +33,16 @@ exports.handler = async (event) => {
     const trackUrl = `${siteOrigin(event)}/t/${ticket.trackToken}/`;
     const public = publicTicket(ticket);
 
-    // Don't block the admin UI on slow Gmail SMTP — email continues in background.
-    notifyTicketUpdate({
-      ticket,
-      trackUrl,
-      kind: status === "done" ? "done" : "status",
-    }).catch((emailError) => {
+    // Must await: Netlify freezes the function after return and kills in-flight SMTP.
+    try {
+      await notifyTicketUpdate({
+        ticket,
+        trackUrl,
+        kind: status === "done" ? "done" : "status",
+      });
+    } catch (emailError) {
       console.error("tickets-status email error:", emailError);
-    });
+    }
 
     return json(200, { ticket: public, trackUrl });
   } catch (error) {

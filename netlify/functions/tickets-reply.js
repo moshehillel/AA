@@ -82,15 +82,17 @@ exports.handler = async (event) => {
     const public = publicTicket(ticket);
 
     if (author === "admin") {
-      // Return to the UI immediately; send the customer email in the background.
-      notifyTicketUpdate({
-        ticket,
-        trackUrl,
-        kind: "reply",
-        body: message || "Sent an attachment",
-      }).catch((emailError) => {
+      // Must await: Netlify freezes the function after return and kills in-flight SMTP.
+      try {
+        await notifyTicketUpdate({
+          ticket,
+          trackUrl,
+          kind: "reply",
+          body: message || "Sent an attachment",
+        });
+      } catch (emailError) {
         console.error("tickets-reply email error:", emailError);
-      });
+      }
     }
 
     return json(200, { ticket: public, trackUrl });

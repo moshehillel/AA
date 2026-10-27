@@ -88,10 +88,12 @@ exports.handler = async (event) => {
 
     const public = publicTicket(ticket);
 
-    // Respond quickly; email delivery continues after the client gets the track link.
-    notifyTicketCreated({ ticket, trackUrl, adminEmail }).catch((emailError) => {
+    // Must await: Netlify freezes the function after return and kills in-flight SMTP.
+    try {
+      await notifyTicketCreated({ ticket, trackUrl, adminEmail });
+    } catch (emailError) {
       console.error("tickets-create email error:", emailError);
-    });
+    }
 
     return json(201, {
       ticket: public,
