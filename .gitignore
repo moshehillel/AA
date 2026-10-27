@@ -2,3 +2,6 @@
 
 # Local Netlify folder
 .netlify
+
+# Netlify API dump (not site content)
+_deploys-latest.json
