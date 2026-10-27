@@ -40,15 +40,18 @@ exports.handler = async (event) => {
       ticket = await getTicketById(id);
       if (!ticket) return json(404, { error: "Ticket not found." });
 
-      const admin = requireAdmin(event);
-      if (admin.ok) {
-        author = "admin";
-      } else {
-        const clientAuth = await requireClientSession(event);
-        if (!clientAuth.ok || clientAuth.client.slug !== ticket.clientSlug) {
-          return json(401, { error: "Authentication required." });
+      const clientAuth = await requireClientSession(event);
+      if (clientAuth.ok) {
+        if (clientAuth.client.slug !== ticket.clientSlug) {
+          return json(403, { error: "Not allowed to reply on this ticket." });
         }
         author = "client";
+      } else {
+        const admin = requireAdmin(event);
+        if (!admin.ok) {
+          return json(401, { error: "Authentication required." });
+        }
+        author = "admin";
       }
     }
 
